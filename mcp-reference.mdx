@@ -1,0 +1,147 @@
+---
+title: "MCP reference"
+description: "POST /v1/mcp/memory endpoint, JSON-RPC methods, authentication, and protocol behavior."
+---
+
+Send all Memory MCP traffic to a single endpoint. Auth identifies the caller — the path is the same for every account.
+
+## Endpoint
+
+```
+POST https://api.pam.harmix.ai/v1/mcp/memory
+```
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/v1/mcp/memory` | SSE keep-alive for Streamable HTTP clients |
+| `POST` | `/v1/mcp/memory` | JSON-RPC 2.0 MCP requests |
+
+## Authentication
+
+Include your agent API key on every request:
+
+```
+Authorization: pam_mkey_<prefix>.<secret>
+```
+
+Some clients prepend `Bearer `. The server accepts both forms.
+
+Generate keys on the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app — not via this endpoint.
+
+## JSON-RPC methods
+
+| Method | Counted toward quotas? | Purpose |
+|--------|----------------------|---------|
+| `initialize` | No | MCP handshake; returns server info and instructions |
+| `initialized` | No | Client acknowledgment (empty 200) |
+| `tools/list` | No | Returns `retrieve_memory` tool schema |
+| `resources/list` | No | Empty list in v1 |
+| `prompts/list` | No | Empty list in v1 |
+| **`tools/call`** + **`retrieve_memory`** | **Yes** | Company memory retrieval |
+
+## tools/list response
+
+The server exposes one tool in v1:
+
+```json
+{
+  "name": "retrieve_memory",
+  "description": "Retrieve relevant company memory for the current user's prompt. Use when the task may depend on company-specific context: people, projects, decisions, processes, priorities, history, customers, or internal terminology. Prefer calling this before making assumptions.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "prompt": { "type": "string" },
+      "session_id": { "type": "string" }
+    },
+    "required": ["prompt"]
+  }
+}
+```
+
+See [retrieve_memory](/retrieve-memory) for full parameter and response documentation.
+
+## Tool result shape
+
+Successful and error responses use HTTP 200 with this structure:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Retrieved Company Context\n\n**Query:** Who are our main enterprise clients and which accounts have the highest recurring revenue?\n\n**Summary:** Enterprise clients span media and publishing; tracked MRR is concentrated in three active accounts.\n\n## Relevant Facts\n\n- [97%] **Tier-1 strategic accounts include a major broadcaster and two enterprise publishers.**\n- [95%] **Three active accounts generate documented monthly recurring revenue.**\n\n---\n*Retrieved 12 items | Avg relevance: 89% | Coverage: comprehensive*"
+    }
+  ],
+  "structuredContent": {
+    "status": "ok",
+    "memory_ready": true,
+    "readiness_state": "ready_rich",
+    "content_text": "# Retrieved Company Context\n\n...",
+    "triage": {
+      "decision": "retrieve",
+      "reasoning": "The query depends on company-specific client context."
+    },
+    "retrieval": {
+      "context_summary": "Enterprise clients span media and publishing; tracked MRR is concentrated in three active accounts.",
+      "total_items": 12,
+      "avg_relevance_score": 0.89,
+      "coverage_assessment": "comprehensive"
+    },
+    "diagnostics": {
+      "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+      "duration_ms": 48210,
+      "estimated_tokens": 8400
+    }
+  },
+  "isError": false
+}
+```
+
+Tool-level errors set `isError: true` and include `structuredContent.error_code`:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+    }
+  ],
+  "structuredContent": {
+    "status": "error",
+    "error_code": "quota_exceeded",
+    "error_message": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+  },
+  "isError": true
+}
+```
+
+## Example: tools/call
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "retrieve_memory",
+    "arguments": {
+      "prompt": "Who are our main enterprise clients and which accounts have the highest recurring revenue?",
+      "session_id": "cursor-thread-k7m2p"
+    }
+  }
+}
+```
+
+## Session ID and MCP headers
+
+The server may return an `Mcp-Session-Id` response header during MCP handshake. If you omit `session_id` in tool arguments, the server uses that MCP session ID instead.
+
+Passing an explicit `session_id` lets you group related calls in request history. The server also stores your last few prompts per `session_id` and may include the last 3 prior prompts in the **triage** step on the next call. This is a lightweight server-side hint — not full conversational context.
+
+## Related
+
+- [retrieve_memory](/retrieve-memory) — tool parameters and response fields
+- [Quotas and limits](/quotas-and-limits) — what counts toward limits
+- [Error codes](/error-codes) — all `error_code` values
+- [Developer API](/developer-api-overview) — key management and request history

@@ -1,0 +1,51 @@
+---
+title: "Introduction"
+description: "Connect external agents to PAM Memory with a read-only MCP server and retrieve company context on demand."
+---
+
+Memory MCP lets Claude Code, Cursor, or your own agent retrieve company-specific context from PAM — people, projects, decisions, processes, priorities, history, customers, and internal terminology — without writing to chat history or consuming chat credits per call.
+
+<Tip>
+  New to Memory MCP? Start with the [Quickstart](/quickstart) to generate a key, connect your client, and run your first `retrieve_memory` call.
+</Tip>
+
+## What Memory MCP does
+
+- Exposes a dedicated MCP server at `POST /v1/mcp/memory` (JSON-RPC 2.0 over HTTP)
+- Provides one production tool in v1: **`retrieve_memory`**
+- Authenticates with a static **`pam_mkey`** agent API key
+- Keeps retrieval audit logs separate from in-app PAM Chat
+- Enforces per-account quotas on retrieval calls
+
+## What it does not do
+
+- Write to PAM Chat threads or modify your workspace
+- Burn chat credits on each MCP call (subscription gate only)
+- Expose write access to your memory or integrations
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Generate a key, paste MCP config, and test retrieval.
+  </Card>
+  <Card title="retrieve_memory" icon="brain" href="/retrieve-memory">
+    Tool reference: parameters, responses, and examples.
+  </Card>
+  <Card title="MCP reference" icon="code" href="/mcp-reference">
+    Endpoint, JSON-RPC methods, and protocol details.
+  </Card>
+  <Card title="Developer API" icon="server" href="/developer-api-overview">
+    REST endpoints for keys, readiness, usage, and request history.
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+Before you connect an MCP client:
+
+1. Connect at least one memory source in PAM (Gmail, Drive, Notion, Slack, or another supported integration)
+2. Wait for memory readiness to complete initial sync and processing
+3. Generate an agent API key from **Memory MCP** in the PAM app
+
+<Note>
+  Client setup, key rotation, and live config examples are available on the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app.
+</Note>

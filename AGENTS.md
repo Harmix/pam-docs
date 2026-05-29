@@ -1,33 +1,71 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
 > For Mintlify product knowledge (components, configuration, writing standards),
 > install the Mintlify skill: `npx skills add https://mintlify.com/docs`
 
-# Documentation project instructions
+# PAM Developer Docs — agent instructions
 
 ## About this project
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
+- Documentation site for **PAM Memory MCP** and the supporting **Developer REST API**
+- Deployed at [harmix.mintlify.app](https://harmix.mintlify.app) (English default, Ukrainian in `uk/`)
 - Pages are MDX files with YAML frontmatter
 - Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
+- OpenAPI spec for Developer API: `openapi/developer-api.yaml`
 
 ## Terminology
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+| Term | Usage |
+|------|-------|
+| Memory MCP | The read-only MCP server at `POST /v1/mcp/memory` |
+| `retrieve_memory` | The sole MCP tool in v1 |
+| `pam_mkey` | Agent API key format: `pam_mkey_<prefix>.<secret>` |
+| Developer API | JWT-authenticated REST at `/v1/dev/*` |
+| Memory MCP | PAM app page for setup, keys, usage, and history (`/for-developers`) |
+| Readiness | Memory provisioning state before retrieval works |
 
 ## Style preferences
-
-{/* Add any project-specific style rules below */}
 
 - Use active voice and second person ("you")
 - Keep sentences concise — one idea per sentence
 - Use sentence case for headings
-- Bold for UI elements: Click **Settings**
+- Bold for UI elements: Click **Generate key**
 - Code formatting for file names, commands, paths, and code references
+- No marketing language ("powerful", "seamless", "robust")
+- Realistic examples in code blocks — not foo/bar
 
 ## Content boundaries
 
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+**Document:**
+- Memory MCP setup, protocol, `retrieve_memory`, quotas, errors
+- Developer API endpoints for key management, readiness, usage, history
+
+**Do not document:**
+- Internal admin features, architecture diagrams, or database table names
+- General PAM Chat API
+- Legacy paths (`/v1/memory/developer/*`) — use `/v1/dev/*`
+- General PAM MCP at `/v1/mcp/router` (separate product surface)
+
+## Source of truth
+
+When updating docs, prefer live code over internal markdown:
+
+| Topic | Source |
+|-------|--------|
+| MCP tool schema | `pam-agent-api/app/services/mcp/memory_tools.py` |
+| Developer endpoints | `pam-agent-api/app/api/v1/developers/api.py` |
+| Response models | `pam-agent-api/app/models/memory/mcp.py` |
+| User-facing copy | `pam-frontend/locales/en/for-developers.json` |
+
+## Localization
+
+- English pages live at the repo root (`introduction.mdx`, etc.)
+- Ukrainian pages live in `uk/` with the same filenames
+- Navigation uses `navigation.languages` in `docs.json` with `en` and `uk`
+- Internal links in Ukrainian pages use the `/uk/` prefix (e.g. `/uk/quickstart`)
+- OpenAPI reference (`openapi/developer-api.yaml`) is shared across languages
+
+Before submitting doc changes:
+
+```bash
+mint broken-links
+mint validate
+```

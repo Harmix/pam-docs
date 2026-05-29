@@ -1,0 +1,40 @@
+---
+title: "Коди помилок"
+description: "Усі значення error_code для retrieve_memory з поясненнями та рекомендованими діями."
+---
+
+Відповіді інструменту `retrieve_memory` можуть містити ці значення `error_code` у `structuredContent`. Усі вони повертають HTTP 200 з `isError: true`.
+
+| error_code | Значення | Рекомендована дія |
+|------------|----------|-------------------|
+| `memory_not_ready` | Пам'ять ще готується або обробляється | Повторіть після readiness (див. Memory MCP) |
+| `no_sources_connected` | Немає підключених джерел пам'яті | Підключіть джерела в Integrations, потім повторіть |
+| `quota_exceeded` | Перевищено ліміт Memory MCP | Зменшіть частоту викликів і повторіть пізніше |
+| `entitlement_required` | Немає кредитів або доступу за підпискою | Оновіть підписку PAM, потім повторіть |
+| `retrieval_timeout` | Перевищено ліміт часу retrieval (120 с) | Повторіть із вужчим prompt або меншою кількістю паралельних викликів |
+| `memory_unavailable` | Тимчасова проблема заблокувала retrieval | Повторіть через короткий час; зверніться в підтримку, якщо не зникає |
+| `invalid_arguments` | Відсутні або некоректні аргументи | Виправте аргументи згідно з [таблицею параметрів](/uk/retrieve-memory) |
+
+## Стани readiness
+
+Коли пам'ять не готова, `structuredContent.readiness_state` може містити:
+
+| Стан | Опис |
+|------|------|
+| `not_provisioned` | Workspace пам'яті ще не створено |
+| `waiting_for_sources` | Інтеграції не підключені |
+| `processing` | Триває початкова синхронізація та аналіз |
+| `syncing_to_vm` | Синхронізація знань для retrieval |
+| `ready_minimal` | Готово з обмеженим контекстом |
+| `ready_rich` | Повністю готово |
+| `error` | Помилка обробки — перевірте Integrations |
+
+Поточний readiness — на сторінці Memory MCP або через `GET /v1/dev/readiness`.
+
+## HTTP vs помилки інструменту
+
+Memory MCP повертає помилки інструменту всередині успішної HTTP 200 відповіді. Лише транспортні збої (мережа, відсутній заголовок auth, невалідний ключ) дають non-200 HTTP статуси.
+
+<Note>
+  `quota_exceeded` стосується лише `retrieve_memory` через `tools/call`, а не handshake-методів чи REST Developer API.
+</Note>

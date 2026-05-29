@@ -1,0 +1,202 @@
+---
+title: "retrieve_memory"
+description: "Довідник інструменту Memory MCP: параметри, форма відповіді, приклади та коли його викликати."
+---
+
+Викликайте `retrieve_memory` через JSON-RPC `tools/call` на `POST /v1/mcp/memory`.
+
+<Note>
+  Інструмент лише для читання. Отримує контекст пам'яті компанії — не записує в історію чату і не змінює workspace PAM.
+</Note>
+
+## Коли викликати
+
+Передавайте prompt, коли задача може залежати від контексту компанії. Краще retrieval, ніж здогадки, щодо:
+
+- Людей, команд і відповідальних
+- Проєктів, рішень і пріоритетів
+- Процесів, клієнтів і внутрішньої термінології
+- Документів, зустрічей і історичного контексту
+
+## Параметри
+
+<ParamField path="prompt" type="string" required>
+  Текстовий опис контексту, який потрібен агенту.
+
+  Максимальна довжина: 8 000 символів.
+</ParamField>
+
+<ParamField path="session_id" type="string">
+  Необов'язковий стабільний ID розмови для групування в історії запитів. Якщо передано, сервер зберігає останні кілька prompt у Redis (TTL 30 днів) і може додати останні 3 prompt лише на етап **triage** — щоб вирішити, чи потрібен retrieval. **Не** переносить попередні результати retrieval і **не** зберігає пам'ять розмови на стороні агента.
+</ParamField>
+
+Приймаються лише `prompt` і `session_id`. Будь-який інший аргумент повертає `invalid_arguments`.
+
+## Поля відповіді
+
+При успіху інструмент повертає HTTP 200 з `content` (текст для агента) і `structuredContent` (машиночитані метадані).
+
+### `content`
+
+| Поле | Опис |
+|------|------|
+| `content[].type` | У v1 завжди `"text"` |
+| `content[].text` | Markdown-звіт для агента — summary, reasoning, ранжовані факти та опційні уривки документів |
+
+### `structuredContent`
+
+| Поле | Опис |
+|------|------|
+| `status` | `"ok"` або `"error"` |
+| `memory_ready` | Чи доступна пам'ять компанії для retrieval |
+| `readiness_state` | Мітка готовності (наприклад `ready_rich`) |
+| `content_text` | Той самий markdown, що й у `content[].text` |
+| `triage` | Рішення маршрутизації, reasoning і опційний rewritten query |
+| `phase1` | Метадані таргетингу секцій (шляхи пошуку, стратегія, оцінка токенів) |
+| `retrieval` | Ранжовані факти, сутності, зв'язки, документи та статистика покриття |
+| `diagnostics` | ID запиту, тривалість, оцінка токенів і секції пошуку |
+
+Ключові поля всередині `retrieval`:
+
+| Поле | Опис |
+|------|------|
+| `context_summary` | Короткий executive summary знайденого контексту |
+| `facts` | Ранжовані твердження з relevance score і шляхами до джерел |
+| `entities` | Люди та організації, пов'язані з запитом |
+| `relationships` | Зв'язки між сутностями в графі |
+| `documents` | Уривки документів (у production можуть бути скорочені) |
+| `total_items` | Кількість отриманих елементів |
+| `avg_relevance_score` | Середня релевантність результатів |
+| `coverage_assessment` | Оцінка покриття (наприклад `comprehensive`) |
+
+При помилці `structuredContent` містить:
+
+| Поле | Опис |
+|------|------|
+| `status` | `"error"` |
+| `error_code` | Машиночитаний код (див. [Коди помилок](/uk/error-codes)) |
+| `error_message` | Зрозумілий опис для людини |
+
+## Приклади
+
+### Аргументи інструменту
+
+```json
+{
+  "prompt": "Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?",
+  "session_id": "cursor-thread-k7m2p"
+}
+```
+
+### Повний JSON-RPC запит
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "retrieve_memory",
+    "arguments": {
+      "prompt": "Хто наші основні enterprise-клієнти і які акаунти мають найвищий recurring revenue?",
+      "session_id": "claude-code-2026-05-29"
+    }
+  }
+}
+```
+
+### Успішна відповідь (скорочено)
+
+Поле `content[].text` — markdown-звіт, який агент читає напряму. Уривки документів у production можуть бути довгими; тут вони скорочені.
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Retrieved Company Context\n\n**Query:** Хто наші основні enterprise-клієнти і які акаунти мають найвищий recurring revenue?\n\n**Summary:** Компанія обслуговує enterprise-акаунти в медіа, healthcare і software, а також меншу групу активних platform-клієнтів. Три задокументовані акаунти формують більшість tracked MRR; tier-1 strategic accounts включають великих видавців і broadcast-партнерів.\n\n## How This Context Was Found\n**Reasoning:** Запит стосується списків клієнтів і revenue-даних, тому таргетовано client directories та financial reports.\n**Sections searched:** Relationships > Client Organizations, Financials > Active Accounts MRR, Strategy > Ideal Customer Profile\n\n## Relevant Facts\n\n- [97%] **Tier-1 strategic accounts включають великого broadcaster і двох enterprise publishers.** (source: Client Organizations)\n- [95%] **Три активні акаунти генерують задокументований monthly recurring revenue у healthcare, education і enterprise software.** (source: Active Accounts MRR)\n\n---\n*Retrieved 12 items | Avg relevance: 89% | Coverage: comprehensive*"
+    }
+  ],
+  "structuredContent": {
+    "status": "ok",
+    "memory_ready": true,
+    "readiness_state": "ready_rich",
+    "content_text": "# Retrieved Company Context\n\n...",
+    "triage": {
+      "decision": "retrieve",
+      "reasoning": "Запит залежить від company-specific client і revenue контексту.",
+      "rewritten_query": "Хто наші основні enterprise-клієнти і які акаунти мають найвищий recurring revenue?"
+    },
+    "phase1": {
+      "search_strategy": "moderate",
+      "estimated_tokens": 42000,
+      "targeted_sections": [
+        {
+          "tree_path": "Company Context > Relationships > Client Organizations",
+          "relevance_reason": "Містить active clients і strategic tiers."
+        }
+      ]
+    },
+    "retrieval": {
+      "context_summary": "Enterprise-клієнти охоплюють media і publishing; tracked MRR сконцентрований у трьох active accounts.",
+      "facts": [
+        {
+          "statement": "Tier-1 strategic accounts включають великого broadcaster і двох enterprise publishers.",
+          "relevance_score": 0.97,
+          "source_path": "company_context/relationships/client_organizations.md"
+        }
+      ],
+      "entities": [
+        {
+          "label": "Northwind Retail",
+          "type": "organization",
+          "properties": { "relationship_to_company": "client", "industry": "Retail" }
+        }
+      ],
+      "total_items": 12,
+      "avg_relevance_score": 0.89,
+      "coverage_assessment": "comprehensive"
+    },
+    "diagnostics": {
+      "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+      "duration_ms": 48210,
+      "estimated_tokens": 8400,
+      "sections_searched": [
+        "Company Context > Relationships > Client Organizations",
+        "Company Context > Financials > Active Accounts MRR"
+      ],
+      "avg_relevance_score": 0.89,
+      "gemini_calls_estimate": 3
+    }
+  },
+  "isError": false
+}
+```
+
+<Tip>
+  Великі відповіді можуть тривати десятки секунд і займати тисячі токенів. Спочатку використовуйте summary і top-ranked facts; звертайтеся до `documents` лише коли агенту потрібен source-level detail.
+</Tip>
+
+## Поведінка session_id
+
+Якщо `session_id` не передано, сервер використовує `Mcp-Session-Id` із MCP handshake (один на акаунт, TTL 30 днів).
+
+Якщо `session_id` передано:
+
+| Що робить | Чого не робить |
+|-----------|----------------|
+| Групує виклики в **Request history** | Не повертає попередні репліки агенту |
+| Зберігає останні **5 prompt** у Redis | Не підставляє попередні результати retrieval |
+| Передає останні **3 prompt** лише в **triage** | Не змінює retrieval query напряму (окрім triage rewrite) |
+
+<Tip>
+  Пам'ять розмови на стороні агента залишається відповідальністю вашого MCP-клієнта. Передавайте стабільний `session_id` на thread, якщо хочете групувати пов'язані виклики `retrieve_memory` і слабо зв'язати їх на етапі triage.
+</Tip>
+
+## Таймаути
+
+Retrieval має завершитися протягом **120 секунд**. Перевищення ліміту повертає `retrieval_timeout`.
+
+## Історія запитів
+
+Кожен врахований виклик зберігає повний prompt і відповідь для перегляду в **Memory MCP → Request history** у застосунку PAM або через `GET /v1/dev/mcp-requests`.

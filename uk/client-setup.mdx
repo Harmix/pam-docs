@@ -1,0 +1,98 @@
+---
+title: "Налаштування клієнта"
+description: "Налаштуйте Memory MCP у Cursor, Claude Code та VS Code з готовими прикладами mcp.json."
+---
+
+Додайте MCP-сервер Memory MCP до вашого agent client, використовуючи endpoint і ключ з розділу [Налаштування та ключі](/uk/setup-and-keys).
+
+**Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
+
+<Tabs>
+  <Tab title="Cursor">
+    1. Відкрийте **Cursor Settings** → **MCP** (або `Ctrl+Shift+P` → **Open MCP settings**)
+    2. Додайте до `mcp.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+
+    3. Перезавантажте Cursor і переконайтеся, що `pam_memory` підключено
+  </Tab>
+  <Tab title="Claude Code">
+    Додайте сервер через CLI Claude Code:
+
+    ```bash
+    claude mcp add --transport http pam_memory https://api.pam.harmix.ai/v1/mcp/memory \
+      --header "Authorization: pam_mkey_<prefix>.<secret>"
+    ```
+
+    Або вставте JSON-конфіг у налаштування MCP Claude Code:
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="VS Code">
+    Створіть або оновіть `.vscode/mcp.json` у workspace:
+
+    ```json
+    {
+      "servers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Метадані сервера
+
+Після підключення MCP handshake повертає:
+
+| Поле | Значення |
+|------|----------|
+| Server name | `pam_memory_mcp` |
+| Protocol version | `2024-11-05` |
+| Tools (v1) | лише `retrieve_memory` |
+| Resources / prompts | порожні списки у v1 |
+
+Відповідь може містити заголовок `Mcp-Session-Id` для безперервності сесії.
+
+## Перевірте підключення
+
+Запустіть у агенті hello world prompt:
+
+```text
+Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?
+```
+
+Перевірте **Memory MCP → Request history** у застосунку PAM, щоб переконатися, що виклик записано.
+
+<Tip>
+  Актуальний конфіг із URL вашого акаунта та префіксом ключа доступний через `GET /v1/dev/mcp-config` — див. [Огляд API для розробників](/uk/developer-api-overview).
+</Tip>

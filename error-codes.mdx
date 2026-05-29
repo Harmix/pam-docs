@@ -1,0 +1,40 @@
+---
+title: "Error codes"
+description: "All retrieve_memory error_code values with meanings and recommended actions."
+---
+
+`retrieve_memory` tool responses may include these `error_code` values in `structuredContent`. All use HTTP 200 with `isError: true`.
+
+| error_code | Meaning | Recommended action |
+|------------|---------|-------------------|
+| `memory_not_ready` | Memory is still provisioning or processing | Retry after memory is ready (see Memory MCP readiness) |
+| `no_sources_connected` | No memory sources connected for this account | Connect sources in Integrations, then retry |
+| `quota_exceeded` | Rate limit exceeded for Memory MCP | Back off and retry later; reduce call frequency |
+| `entitlement_required` | Account has no remaining credits or subscription access | Upgrade or renew your PAM subscription, then retry |
+| `retrieval_timeout` | Retrieval exceeded the server time limit (120s) | Retry with a narrower prompt or fewer parallel calls |
+| `memory_unavailable` | Temporary issue blocked retrieval | Retry after a short delay; contact support if it persists |
+| `invalid_arguments` | Missing or invalid tool arguments (empty or oversized prompt) | Fix arguments per the [parameter table](/retrieve-memory) and retry |
+
+## Readiness states
+
+When memory is not ready, `structuredContent.readiness_state` may indicate:
+
+| State | Description |
+|-------|-------------|
+| `not_provisioned` | Memory workspace not yet created |
+| `waiting_for_sources` | No integrations connected |
+| `processing` | Initial sync and analysis in progress |
+| `syncing_to_vm` | Knowledge syncing for retrieval |
+| `ready_minimal` | Ready with limited context |
+| `ready_rich` | Fully ready |
+| `error` | Processing error — check Integrations |
+
+Check current readiness on the Memory MCP page or via `GET /v1/dev/readiness`.
+
+## HTTP vs tool errors
+
+Memory MCP returns tool-level errors inside a successful HTTP 200 response. Only transport-level failures (network, auth header missing, invalid key) return non-200 HTTP status codes.
+
+<Note>
+  `quota_exceeded` applies only to `retrieve_memory` via `tools/call`, not to handshake methods or Developer REST calls.
+</Note>
