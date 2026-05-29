@@ -1,0 +1,61 @@
+---
+title: "Setup and keys"
+description: "Generate, rotate, and revoke pam_mkey agent API keys for Memory MCP authentication."
+---
+
+Memory MCP authenticates every request with a static agent API key. Keys are scoped to memory retrieval for your PAM account.
+
+## Key format
+
+```
+Authorization: pam_mkey_<prefix>.<secret>
+```
+
+Send this value in the `Authorization` header on **every** request to `/v1/mcp/memory`, including handshake methods (`initialize`, `tools/list`).
+
+<Warning>
+  Never commit API keys to source control. Rotate immediately if a key is exposed.
+</Warning>
+
+## Generate a key
+
+1. Open [Memory MCP](https://pam.harmix.ai/for-developers) in the PAM app
+2. Complete memory source connection and wait for readiness
+3. Click **Generate key** and copy the full secret immediately
+
+You cannot view the secret again after leaving the page. The dashboard shows only the key prefix until you rotate.
+
+## One active key per account
+
+Each account has at most one active key at a time. Rotating a key:
+
+- Issues a new `pam_mkey_<prefix>.<secret>`
+- Revokes the previous key immediately
+- Requires updating your MCP client configuration
+
+## Rotate or revoke
+
+| Action | Where | API |
+|--------|-------|-----|
+| Rotate key | Memory MCP page | `POST /v1/dev/rotate-key` |
+| Revoke key | Memory MCP page | `POST /v1/dev/revoke-key` |
+
+Both dashboard actions and REST endpoints require your **PAM access JWT**, not a `pam_mkey`.
+
+See [Developer API overview](/developer-api-overview) for REST details.
+
+## MCP verified status
+
+Your key is marked **MCP verified** only after the first **successful** `retrieve_memory` call (`isError: false`).
+
+Blocked calls — quota exceeded, entitlement required, invalid arguments, memory not ready — do **not** verify the key.
+
+## Security practices
+
+- Store keys in environment variables or secret managers, not in committed config files
+- Rotate keys when team members leave or a key may have been shared
+- Use separate keys per environment if you operate multiple agent deployments
+
+<Info>
+  The secret is shown once at issuance or rotation. After that, only the key prefix is visible in the Memory MCP dashboard.
+</Info>

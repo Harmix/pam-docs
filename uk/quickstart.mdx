@@ -1,0 +1,73 @@
+---
+title: "Швидкий старт"
+description: "Підключіть Memory MCP до агента за кілька хвилин: згенеруйте ключ, вставте конфіг і виконайте retrieve_memory."
+---
+
+Пройдіть від нуля до успішного виклику `retrieve_memory` у чотири кроки.
+
+## Передумови
+
+Перед початком переконайтеся, що у вас є:
+
+- Акаунт PAM із підключеним хоча б одним джерелом пам'яті
+- Статус готовності пам'яті **Ready** (див. Memory MCP у застосунку PAM)
+- MCP-сумісний клієнт (Cursor, Claude Code або VS Code)
+
+<Steps>
+  <Step title="Згенеруйте API ключ агента">
+    Відкрийте [Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM і натисніть **Generate key**.
+
+    Скопіюйте повний ключ одразу — після виходу зі сторінки секрет більше не відображається. Формат ключа: `pam_mkey_<prefix>.<secret>`.
+  </Step>
+  <Step title="Додайте MCP-сервер у клієнт">
+    Вставте цю конфігурацію в налаштування MCP-клієнта. Замініть placeholder на ваш повний ключ.
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+
+    Детальні інструкції для Cursor, Claude Code і VS Code — у розділі [Налаштування клієнта](/uk/client-setup).
+  </Step>
+  <Step title="Додайте інструкції для агента">
+    Додайте цей фрагмент у системний промпт агента, щоб він знав, коли потрібно отримувати пам'ять:
+
+    ```text
+    You have access to PAM Memory through the retrieve_memory MCP tool.
+
+    Use it when a request may depend on company-specific context:
+    people, projects, decisions, processes, priorities, history, customers,
+    documents, meetings, or internal terminology.
+
+    Prefer retrieving memory before making assumptions.
+
+    If retrieved context is partial or uncertain, say so and ask a focused follow-up.
+    ```
+  </Step>
+  <Step title="Запустіть hello world prompt">
+    Поставте агенту запитання:
+
+    ```text
+    Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?
+    ```
+
+    Агент має викликати `retrieve_memory` із вашим prompt. Успішний виклик позначає ключ як **MCP verified** на сторінці Memory MCP.
+  </Step>
+</Steps>
+
+<Check>
+  Налаштування завершено, коли агент повертає контекст компанії після успішного виклику `retrieve_memory`.
+</Check>
+
+<Tip>
+  Потрібен повний довідник протоколу? Див. [Довідник MCP](/uk/mcp-reference) та [retrieve_memory](/uk/retrieve-memory).
+</Tip>

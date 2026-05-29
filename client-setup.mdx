@@ -1,0 +1,98 @@
+---
+title: "Client setup"
+description: "Configure Memory MCP in Cursor, Claude Code, and VS Code with copy-paste mcp.json examples."
+---
+
+Add the Memory MCP server to your agent client using the endpoint and key from [Setup and keys](/setup-and-keys).
+
+**Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
+
+<Tabs>
+  <Tab title="Cursor">
+    1. Open **Cursor Settings** → **MCP** (or run `Ctrl+Shift+P` → **Open MCP settings**)
+    2. Add to your `mcp.json`:
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+
+    3. Reload Cursor and confirm `pam_memory` shows as connected
+  </Tab>
+  <Tab title="Claude Code">
+    Add the server with the Claude Code CLI:
+
+    ```bash
+    claude mcp add --transport http pam_memory https://api.pam.harmix.ai/v1/mcp/memory \
+      --header "Authorization: pam_mkey_<prefix>.<secret>"
+    ```
+
+    Or paste the JSON config into your Claude Code MCP settings:
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="VS Code">
+    Create or update `.vscode/mcp.json` in your workspace:
+
+    ```json
+    {
+      "servers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Server metadata
+
+After connection, the MCP handshake returns:
+
+| Field | Value |
+|-------|-------|
+| Server name | `pam_memory_mcp` |
+| Protocol version | `2024-11-05` |
+| Tools (v1) | `retrieve_memory` only |
+| Resources / prompts | Empty lists in v1 |
+
+The response may include an `Mcp-Session-Id` header for session continuity.
+
+## Test your connection
+
+Run this hello world prompt in your agent:
+
+```text
+What do we know about our current project priorities, and who is responsible for follow-up on each?
+```
+
+Check **Memory MCP → Request history** in the PAM app to confirm the call was recorded.
+
+<Tip>
+  Live config with your account-specific URL and key prefix is available at `GET /v1/dev/mcp-config` — see [Developer API overview](/developer-api-overview).
+</Tip>

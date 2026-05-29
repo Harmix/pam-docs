@@ -1,0 +1,147 @@
+---
+title: "Довідник MCP"
+description: "Endpoint POST /v1/mcp/memory, методи JSON-RPC, автентифікація та поведінка протоколу."
+---
+
+Увесь трафік Memory MCP надсилайте на один endpoint. Автентифікація визначає користувача — шлях однаковий для всіх акаунтів.
+
+## Endpoint
+
+```
+POST https://api.pam.harmix.ai/v1/mcp/memory
+```
+
+| Метод | Шлях | Призначення |
+|-------|------|-------------|
+| `GET` | `/v1/mcp/memory` | SSE keep-alive для Streamable HTTP клієнтів |
+| `POST` | `/v1/mcp/memory` | JSON-RPC 2.0 MCP запити |
+
+## Автентифікація
+
+Передавайте API ключ агента в кожному запиті:
+
+```
+Authorization: pam_mkey_<prefix>.<secret>
+```
+
+Деякі клієнти додають префікс `Bearer `. Сервер приймає обидва формати.
+
+Генеруйте ключі на [сторінці Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM — не через цей endpoint.
+
+## Методи JSON-RPC
+
+| Метод | Враховується в квотах? | Призначення |
+|-------|------------------------|-------------|
+| `initialize` | Ні | MCP handshake; повертає інформацію про сервер |
+| `initialized` | Ні | Підтвердження клієнта (порожня 200) |
+| `tools/list` | Ні | Повертає схему інструменту `retrieve_memory` |
+| `resources/list` | Ні | Порожній список у v1 |
+| `prompts/list` | Ні | Порожній список у v1 |
+| **`tools/call`** + **`retrieve_memory`** | **Так** | Retrieval контексту компанії |
+
+## Відповідь tools/list
+
+Сервер надає один інструмент у v1:
+
+```json
+{
+  "name": "retrieve_memory",
+  "description": "Retrieve relevant company memory for the current user's prompt. Use when the task may depend on company-specific context: people, projects, decisions, processes, priorities, history, customers, or internal terminology. Prefer calling this before making assumptions.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "prompt": { "type": "string" },
+      "session_id": { "type": "string" }
+    },
+    "required": ["prompt"]
+  }
+}
+```
+
+Повний опис параметрів і відповідей — у [retrieve_memory](/uk/retrieve-memory).
+
+## Форма результату інструменту
+
+Успішні та помилкові відповіді повертають HTTP 200 у такому форматі:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Retrieved Company Context\n\n**Query:** Хто наші основні enterprise-клієнти і які акаунти мають найвищий recurring revenue?\n\n**Summary:** Enterprise-клієнти охоплюють media і publishing; tracked MRR сконцентрований у трьох active accounts.\n\n## Relevant Facts\n\n- [97%] **Tier-1 strategic accounts включають великого broadcaster і двох enterprise publishers.**\n- [95%] **Три активні акаунти генерують задокументований monthly recurring revenue.**\n\n---\n*Retrieved 12 items | Avg relevance: 89% | Coverage: comprehensive*"
+    }
+  ],
+  "structuredContent": {
+    "status": "ok",
+    "memory_ready": true,
+    "readiness_state": "ready_rich",
+    "content_text": "# Retrieved Company Context\n\n...",
+    "triage": {
+      "decision": "retrieve",
+      "reasoning": "Запит залежить від company-specific client контексту."
+    },
+    "retrieval": {
+      "context_summary": "Enterprise-клієнти охоплюють media і publishing; tracked MRR сконцентрований у трьох active accounts.",
+      "total_items": 12,
+      "avg_relevance_score": 0.89,
+      "coverage_assessment": "comprehensive"
+    },
+    "diagnostics": {
+      "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+      "duration_ms": 48210,
+      "estimated_tokens": 8400
+    }
+  },
+  "isError": false
+}
+```
+
+Помилки на рівні інструменту мають `isError: true` і `structuredContent.error_code`:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Ви досягли тижневого ліміту Memory MCP. Спробуйте знову після понеділка 00:00 UTC або зменшіть частоту викликів retrieve_memory."
+    }
+  ],
+  "structuredContent": {
+    "status": "error",
+    "error_code": "quota_exceeded",
+    "error_message": "Ви досягли тижневого ліміту Memory MCP. Спробуйте знову після понеділка 00:00 UTC або зменшіть частоту викликів retrieve_memory."
+  },
+  "isError": true
+}
+```
+
+## Приклад: tools/call
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "retrieve_memory",
+    "arguments": {
+      "prompt": "Хто наші основні enterprise-клієнти і які акаунти мають найвищий recurring revenue?",
+      "session_id": "cursor-thread-k7m2p"
+    }
+  }
+}
+```
+
+## Session ID та MCP-заголовки
+
+Сервер може повертати заголовок `Mcp-Session-Id` під час MCP handshake. Якщо `session_id` не передано в аргументах інструменту, використовується цей MCP session ID.
+
+Явний `session_id` дозволяє групувати пов'язані виклики в історії запитів. Сервер також зберігає останні prompt для цього `session_id` і може додати останні 3 prompt лише на етап **triage** при наступному виклику. Це легка server-side підказка, а не повний контекст розмови.
+
+## Пов'язані розділи
+
+- [retrieve_memory](/uk/retrieve-memory) — параметри інструменту та поля відповіді
+- [Квоти та ліміти](/uk/quotas-and-limits) — що враховується в лімітах
+- [Коди помилок](/uk/error-codes) — усі значення `error_code`
+- [API для розробників](/uk/developer-api-overview) — керування ключами та історія запитів

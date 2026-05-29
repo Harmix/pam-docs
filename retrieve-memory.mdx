@@ -1,0 +1,200 @@
+---
+title: "retrieve_memory"
+description: "Memory MCP tool reference: parameters, response shape, examples, and when to call it."
+---
+
+Invoke `retrieve_memory` via JSON-RPC `tools/call` on `POST /v1/mcp/memory`.
+
+<Note>
+  Read-only tool. Retrieves company memory context — does not write to chat history or modify your PAM workspace.
+</Note>
+
+## When to call
+
+Pass a prompt when the task may depend on company-specific context. Prefer retrieval before guessing about:
+
+- People, teams, and ownership
+- Projects, decisions, and priorities
+- Processes, customers, and internal terminology
+- Documents, meetings, and historical context
+
+## Parameters
+
+<ParamField path="prompt" type="string" required>
+  Natural-language description of the context your agent needs.
+
+  Maximum length: 8,000 characters.
+</ParamField>
+
+<ParamField path="session_id" type="string">
+  Optional stable conversation ID for request history grouping. When provided, the server stores your last few prompts in Redis (30-day TTL) and may include the last 3 prior prompts in the **triage** step only — to help decide whether retrieval is needed. It does **not** carry prior retrieval results or maintain agent-side conversation memory.
+</ParamField>
+
+Only `prompt` and `session_id` are accepted. Any other argument returns `invalid_arguments`.
+
+## Response fields
+
+On success, the tool returns HTTP 200 with `content` (agent-readable text) and `structuredContent` (machine-readable metadata).
+
+### `content`
+
+| Field | Description |
+|-------|-------------|
+| `content[].type` | Always `"text"` in v1 |
+| `content[].text` | Markdown report for your agent — summary, reasoning, ranked facts, and optional document excerpts |
+
+### `structuredContent`
+
+| Field | Description |
+|-------|-------------|
+| `status` | `"ok"` or `"error"` |
+| `memory_ready` | Whether company memory is available for retrieval |
+| `readiness_state` | Readiness label (for example `ready_rich`) |
+| `content_text` | Same markdown as `content[].text` |
+| `triage` | Routing decision, reasoning, and optional rewritten query |
+| `phase1` | Section targeting metadata (searched paths, strategy, token estimate) |
+| `retrieval` | Ranked facts, entities, relationships, documents, and coverage stats |
+| `diagnostics` | Request ID, duration, token estimate, and sections searched |
+
+Key fields inside `retrieval`:
+
+| Field | Description |
+|-------|-------------|
+| `context_summary` | Short executive summary of what was found |
+| `facts` | Ranked statements with relevance scores and source paths |
+| `entities` | People and organizations tied to the query |
+| `relationships` | Graph edges between entities |
+| `documents` | Relevant document excerpts (may be truncated in the response) |
+| `total_items` | Count of retrieved items |
+| `avg_relevance_score` | Average relevance across returned items |
+| `coverage_assessment` | Coverage label (for example `comprehensive`) |
+
+On error, `structuredContent` includes:
+
+| Field | Description |
+|-------|-------------|
+| `status` | `"error"` |
+| `error_code` | Machine-readable error (see [Error codes](/error-codes)) |
+| `error_message` | Human-readable explanation |
+
+## Examples
+
+### Tool arguments
+
+```json
+{
+  "prompt": "What do we know about our current project priorities, and who is responsible for follow-up on each?",
+  "session_id": "cursor-thread-k7m2p"
+}
+```
+
+### Full JSON-RPC request
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "retrieve_memory",
+    "arguments": {
+      "prompt": "Who are our main enterprise clients and which accounts have the highest recurring revenue?",
+      "session_id": "claude-code-2026-05-29"
+    }
+  }
+}
+```
+
+### Successful response (abbreviated)
+
+The `content[].text` field is a markdown report your agent can read directly. Document excerpts in production responses may be long; they are shortened here.
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Retrieved Company Context\n\n**Query:** Who are our main enterprise clients and which accounts have the highest recurring revenue?\n\n**Summary:** The company serves enterprise accounts across media, healthcare, and software, plus a smaller set of active platform customers. Three documented accounts drive most tracked recurring revenue; tier-1 strategic accounts include major publishers and broadcast partners.\n\n## How This Context Was Found\n**Reasoning:** The query asks for client lists and revenue-related account data, so client directories and financial reports were targeted.\n**Sections searched:** Relationships > Client Organizations, Financials > Active Accounts MRR, Strategy > Ideal Customer Profile\n\n## Relevant Facts\n\n- [97%] **Tier-1 strategic accounts include a major broadcaster and two enterprise publishers.** (source: Client Organizations)\n- [95%] **Three active accounts generate documented monthly recurring revenue in healthcare, education, and enterprise software.** (source: Active Accounts MRR)\n\n---\n*Retrieved 12 items | Avg relevance: 89% | Coverage: comprehensive*"
+    }
+  ],
+  "structuredContent": {
+    "status": "ok",
+    "memory_ready": true,
+    "readiness_state": "ready_rich",
+    "content_text": "# Retrieved Company Context\n\n...",
+    "triage": {
+      "decision": "retrieve",
+      "reasoning": "The query depends on company-specific client and revenue context.",
+      "rewritten_query": "Who are our main enterprise clients and which accounts have the highest recurring revenue?"
+    },
+    "phase1": {
+      "search_strategy": "moderate",
+      "estimated_tokens": 42000,
+      "targeted_sections": [
+        {
+          "tree_path": "Company Context > Relationships > Client Organizations",
+          "relevance_reason": "Lists active clients and strategic tiers."
+        }
+      ]
+    },
+    "retrieval": {
+      "context_summary": "Enterprise clients span media and publishing; tracked MRR is concentrated in three active accounts.",
+      "facts": [
+        {
+          "statement": "Tier-1 strategic accounts include a major broadcaster and two enterprise publishers.",
+          "relevance_score": 0.97,
+          "source_path": "company_context/relationships/client_organizations.md"
+        }
+      ],
+      "entities": [
+        {
+          "label": "Northwind Retail",
+          "type": "organization",
+          "properties": { "relationship_to_company": "client", "industry": "Retail" }
+        }
+      ],
+      "total_items": 12,
+      "avg_relevance_score": 0.89,
+      "coverage_assessment": "comprehensive"
+    },
+    "diagnostics": {
+      "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+      "duration_ms": 48210,
+      "estimated_tokens": 8400,
+      "sections_searched": [
+        "Company Context > Relationships > Client Organizations",
+        "Company Context > Financials > Active Accounts MRR"
+      ],
+      "avg_relevance_score": 0.89,
+      "gemini_calls_estimate": 3
+    }
+  },
+  "isError": false
+}
+```
+
+<Tip>
+  Large responses can take tens of seconds and thousands of tokens. Use the summary and top-ranked facts first; drill into `documents` only when your agent needs source-level detail.
+</Tip>
+
+## Session ID behavior
+
+If you omit `session_id`, the server falls back to the MCP handshake `Mcp-Session-Id` header (one per user account, 30-day TTL).
+
+If you pass `session_id`:
+
+| What it does | What it does not do |
+|--------------|---------------------|
+| Groups calls in **Request history** | Return prior turns to your agent |
+| Stores last **5 prompts** in Redis | Inject prior retrieval results into new calls |
+| Feeds last **3 prompts** into **triage only** | Change the retrieval query directly (except via triage rewrite) |
+
+<Tip>
+  Your MCP client or agent is still responsible for conversation memory. Pass a stable `session_id` per thread if you want related `retrieve_memory` calls grouped and lightly connected at triage time.
+</Tip>
+
+Retrieval must complete within **120 seconds**. Exceeding the limit returns `retrieval_timeout`.
+
+## Request history
+
+Every counted call stores the full prompt and response for your review on **Memory MCP → Request history** in the PAM app, or via `GET /v1/dev/mcp-requests`.

@@ -1,0 +1,703 @@
+openapi: 3.1.0
+info:
+  title: PAM Memory MCP Developer API
+  description: |
+    REST endpoints for Memory MCP key management, readiness, usage analytics, and request history.
+
+    These endpoints require a PAM access JWT (`Authorization: Bearer <token>`).
+    They are separate from the Memory MCP protocol at `POST /v1/mcp/memory`, which uses `pam_mkey` authentication.
+
+    Developer REST calls are not counted toward Memory MCP retrieval quotas.
+  version: 1.0.0
+servers:
+  - url: https://api.pam.harmix.ai
+    description: PAM API
+security:
+  - bearerAuth: []
+paths:
+  /v1/dev/readiness:
+    get:
+      operationId: getDeveloperReadiness
+      summary: Get memory readiness status
+      description: Returns memory readiness for the authenticated user's setup checklist.
+      responses:
+        "200":
+          description: Readiness status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryReadinessStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/dev/mcp-config:
+    get:
+      operationId: getDeveloperMcpConfig
+      summary: Get MCP configuration
+      description: |
+        Dashboard aggregate for Memory MCP setup. Returns connection details, optional prompt snippets,
+        embedded readiness and quota, and a paste-ready MCP client config.
+
+        Most external integrations only need `mcp_url`, `key_prefix`, `claude_code_config_example`,
+        and `mcp_verified`. Use `GET /v1/dev/readiness` or `GET /v1/dev/mcp-usage-stats` when polling
+        those concerns separately. `api_key` is null unless you just rotated — use `POST /v1/dev/rotate-key`
+        for secrets.
+      responses:
+        "200":
+          description: MCP configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeveloperMcpConfigResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/dev/mcp-usage-stats:
+    get:
+      operationId: getDeveloperMcpUsageStats
+      summary: Get MCP usage analytics
+      description: Returns usage statistics for retrieve_memory calls over a date range.
+      parameters:
+        - name: days
+          in: query
+          description: Number of days to include (1–90)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 90
+            default: 30
+      responses:
+        "200":
+          description: Usage statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryMcpUsageStatsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/dev/mcp-requests:
+    get:
+      operationId: listDeveloperMcpRequests
+      summary: List MCP request history
+      description: Returns paginated retrieve_memory call history with prompts and responses.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: cursor
+          in: query
+          schema:
+            type: string
+            nullable: true
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: q
+          in: query
+          description: Search tool, prompt, or response text
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      responses:
+        "200":
+          description: Request list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryMcpRequestListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/dev/mcp-requests/{request_id}:
+    get:
+      operationId: getDeveloperMcpRequest
+      summary: Get MCP request detail
+      description: Returns full details for a single retrieve_memory call.
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryMcpRequestDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Request not found
+  /v1/dev/rotate-key:
+    post:
+      operationId: rotateDeveloperApiKey
+      summary: Rotate agent API key
+      description: Issues a new pam_mkey agent API key and revokes the previous active key.
+      responses:
+        "200":
+          description: New key issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeveloperRotateApiKeyResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/dev/revoke-key:
+    post:
+      operationId: revokeDeveloperApiKey
+      summary: Revoke agent API key
+      description: Revokes the active pam_mkey agent API key for the authenticated user.
+      responses:
+        "200":
+          description: Key revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revoked:
+                    type: boolean
+                    example: true
+                required: [revoked]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: PAM access JWT from the authenticated session
+  responses:
+    Unauthorized:
+      description: Missing or invalid access token
+  schemas:
+    MemoryReadinessState:
+      type: string
+      enum:
+        - not_provisioned
+        - waiting_for_sources
+        - processing
+        - syncing_to_vm
+        - ready_minimal
+        - ready_rich
+        - error
+    MemoryReadinessStatus:
+      type: object
+      required: [ready, state]
+      properties:
+        ready:
+          type: boolean
+        state:
+          $ref: "#/components/schemas/MemoryReadinessState"
+        connected_sources_count:
+          type: integer
+          default: 0
+        completed_sources_count:
+          type: integer
+          default: 0
+        latest_pipeline_status:
+          type: string
+          nullable: true
+        estimated_wait_message:
+          type: string
+          nullable: true
+        has_facts:
+          type: boolean
+          default: false
+        has_context_markdown:
+          type: boolean
+          default: false
+        has_tree_index:
+          type: boolean
+          default: false
+      example:
+        ready: true
+        state: ready_rich
+        connected_sources_count: 4
+        completed_sources_count: 4
+        latest_pipeline_status: completed
+        estimated_wait_message: null
+        has_facts: true
+        has_context_markdown: true
+        has_tree_index: true
+    MemoryMcpQuotaStatus:
+      type: object
+      required:
+        - plan
+        - status
+        - requests_this_week
+        - weekly_limit
+        - remaining_this_week
+        - requests_this_month
+        - monthly_limit
+        - remaining_this_month
+        - usage_percent
+        - week_reset_at
+        - month_reset_at
+      properties:
+        plan:
+          type: string
+        status:
+          type: string
+          enum: [ok, near_limit, limited, entitlement_required]
+        requests_this_week:
+          type: integer
+        weekly_limit:
+          type: integer
+        remaining_this_week:
+          type: integer
+        requests_this_month:
+          type: integer
+        monthly_limit:
+          type: integer
+        remaining_this_month:
+          type: integer
+        usage_percent:
+          type: integer
+        week_reset_at:
+          type: string
+          format: date-time
+        month_reset_at:
+          type: string
+          format: date-time
+      example:
+        plan: paid
+        status: ok
+        requests_this_week: 28
+        weekly_limit: 300
+        remaining_this_week: 272
+        requests_this_month: 187
+        monthly_limit: 1000
+        remaining_this_month: 813
+        usage_percent: 19
+        week_reset_at: "2026-06-02T00:00:00+00:00"
+        month_reset_at: "2026-06-01T00:00:00+00:00"
+    DeveloperMcpConfigResponse:
+      type: object
+      required:
+        - mcp_url
+        - mcp_server_name
+        - mcp_verified
+        - system_prompt_snippet
+        - hello_world_prompt
+        - claude_code_config_example
+        - readiness
+      properties:
+        mcp_url:
+          type: string
+          example: https://api.pam.harmix.ai/v1/mcp/memory
+        mcp_server_name:
+          type: string
+          default: pam_memory_mcp
+        api_key:
+          type: string
+          nullable: true
+          description: Full key only immediately after POST /v1/dev/rotate-key. Usually null — use key_prefix plus your stored secret.
+        key_prefix:
+          type: string
+          nullable: true
+          description: Prefix of the active agent key (pam_mkey_<prefix>.<secret>).
+        mcp_verified:
+          type: boolean
+          description: True after at least one successful retrieve_memory call with the active key.
+        system_prompt_snippet:
+          type: string
+          description: Convenience copy of the recommended agent system prompt (same as docs quickstart).
+        hello_world_prompt:
+          type: string
+          description: Convenience copy of a suggested first test prompt after MCP connection.
+        claude_code_config_example:
+          type: object
+          additionalProperties: true
+          description: Paste-ready mcpServers block for Cursor or Claude Code. Uses Authorization placeholder when api_key is null.
+        readiness:
+          $ref: "#/components/schemas/MemoryReadinessStatus"
+          description: Embedded readiness snapshot. Prefer GET /v1/dev/readiness when polling pipeline status only.
+        quota:
+          $ref: "#/components/schemas/MemoryMcpQuotaStatus"
+          nullable: true
+          description: Embedded quota snapshot for retrieve_memory. Prefer GET /v1/dev/mcp-usage-stats for analytics.
+        developer_api_notice:
+          type: string
+          nullable: true
+          description: Human-readable pointer to other /v1/dev routes. Safe to ignore in automation.
+      example:
+        mcp_url: https://api.pam.harmix.ai/v1/mcp/memory
+        mcp_server_name: pam_memory_mcp
+        api_key: null
+        key_prefix: pam_mkey_a3f8c21b
+        mcp_verified: true
+        system_prompt_snippet: >-
+          You have access to PAM Memory through the retrieve_memory MCP tool. Use it when a request may depend on company-specific context: people, projects, decisions, processes, priorities, history, customers, documents, meetings, or internal terminology. Prefer retrieving memory before making assumptions. If retrieved context is partial or uncertain, say so and ask a focused follow-up.
+        hello_world_prompt: Summarize what you know about our company's current priorities and recent key projects based on retrieved memory.
+        claude_code_config_example:
+          mcpServers:
+            pam_memory:
+              type: http
+              url: https://api.pam.harmix.ai/v1/mcp/memory
+              headers:
+                Authorization: pam_mkey_<prefix>.<secret>
+        readiness:
+          ready: true
+          state: ready_rich
+          connected_sources_count: 4
+          completed_sources_count: 4
+          latest_pipeline_status: completed
+          estimated_wait_message: null
+          has_facts: true
+          has_context_markdown: true
+          has_tree_index: true
+        quota:
+          plan: paid
+          status: ok
+          requests_this_week: 28
+          weekly_limit: 300
+          remaining_this_week: 272
+          requests_this_month: 187
+          monthly_limit: 1000
+          remaining_this_month: 813
+          usage_percent: 19
+          week_reset_at: "2026-06-02T00:00:00+00:00"
+          month_reset_at: "2026-06-01T00:00:00+00:00"
+        developer_api_notice: You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key).
+    DeveloperRotateApiKeyResponse:
+      type: object
+      required: [api_key, rotated_at]
+      properties:
+        api_key:
+          type: string
+          example: pam_mkey_<prefix>.<secret>
+        key_prefix:
+          type: string
+          nullable: true
+        rotated_at:
+          type: string
+          format: date-time
+      example:
+        api_key: pam_mkey_a3f8c21b.Kx7vP2mNqR8sT4wY9zAbCdEfGh
+        key_prefix: pam_mkey_a3f8c21b
+        rotated_at: "2026-05-29T14:22:08.451234+00:00"
+    MemoryMcpRequestListItem:
+      type: object
+      required:
+        - request_id
+        - tool_name
+        - prompt
+        - duration_ms
+        - created_at
+      properties:
+        request_id:
+          type: string
+        tool_name:
+          type: string
+          example: retrieve_memory
+        prompt:
+          type: string
+        response_content_text:
+          type: string
+          nullable: true
+        response_json:
+          type: object
+          nullable: true
+          additionalProperties: true
+        duration_ms:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+      example:
+        request_id: f30ee45b-06eb-4c46-9fa7-e76d29ba7131
+        tool_name: retrieve_memory
+        prompt: Who owns the Meridian platform rollout and what blockers were flagged in the last week?
+        response_content_text: "# Retrieved Company Context\n\n**Summary:** The rollout is owned by Platform Engineering..."
+        response_json:
+          content:
+            - type: text
+              text: "# Retrieved Company Context\n\n..."
+          structuredContent:
+            status: ok
+            memory_ready: true
+            readiness_state: ready_rich
+            triage:
+              decision: retrieve
+              reasoning: The query depends on project ownership and recent status from company memory.
+            diagnostics:
+              request_id: f30ee45b-06eb-4c46-9fa7-e76d29ba7131
+              duration_ms: 38420
+              estimated_tokens: 6200
+              gemini_calls_estimate: 3
+          isError: false
+        duration_ms: 38420
+        created_at: "2026-05-29T11:47:33.128000+00:00"
+    MemoryMcpRequestListResponse:
+      type: object
+      required: [items, page_size]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryMcpRequestListItem"
+        next_cursor:
+          type: string
+          nullable: true
+        page_size:
+          type: integer
+        total_count:
+          type: integer
+          default: 0
+        current_page:
+          type: integer
+          default: 1
+        total_pages:
+          type: integer
+          default: 1
+      example:
+        items:
+          - request_id: f30ee45b-06eb-4c46-9fa7-e76d29ba7131
+            tool_name: retrieve_memory
+            prompt: Who owns the Meridian platform rollout and what blockers were flagged in the last week?
+            response_content_text: "# Retrieved Company Context\n\n**Summary:** The rollout is owned by Platform Engineering..."
+            response_json:
+              content:
+                - type: text
+                  text: "# Retrieved Company Context\n\n..."
+              structuredContent:
+                status: ok
+                memory_ready: true
+                readiness_state: ready_rich
+              isError: false
+            duration_ms: 38420
+            created_at: "2026-05-29T11:47:33.128000+00:00"
+          - request_id: 8c1d4e2a-7b90-4f3c-9a1e-6d5c8b0f2e44
+            tool_name: retrieve_memory
+            prompt: What is our refund policy for enterprise customers?
+            response_content_text: Monthly retrieve_memory quota exceeded. Retry after 2026-06-02T00:00:00+00:00.
+            response_json:
+              content:
+                - type: text
+                  text: Monthly retrieve_memory quota exceeded. Retry after 2026-06-02T00:00:00+00:00.
+              structuredContent:
+                status: error
+                error_code: quota_exceeded
+                error_message: Monthly retrieve_memory quota exceeded. Retry after 2026-06-02T00:00:00+00:00.
+              isError: true
+            duration_ms: 12
+            created_at: "2026-05-28T16:03:11.904000+00:00"
+        next_cursor: "2026-05-28T16:03:11.904000+00:00|1842"
+        page_size: 10
+        total_count: 47
+        current_page: 1
+        total_pages: 5
+    MemoryMcpRequestDetail:
+      type: object
+      required:
+        - request_id
+        - tool_name
+        - prompt
+        - duration_ms
+        - created_at
+      properties:
+        request_id:
+          type: string
+        tool_name:
+          type: string
+        prompt:
+          type: string
+        response_content_text:
+          type: string
+          nullable: true
+        response_json:
+          type: object
+          nullable: true
+          additionalProperties: true
+        duration_ms:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+      example:
+        request_id: f30ee45b-06eb-4c46-9fa7-e76d29ba7131
+        tool_name: retrieve_memory
+        prompt: Who owns the Meridian platform rollout and what blockers were flagged in the last week?
+        response_content_text: "# Retrieved Company Context\n\n**Query:** Who owns the Meridian platform rollout..."
+        response_json:
+          content:
+            - type: text
+              text: "# Retrieved Company Context\n\n..."
+          structuredContent:
+            status: ok
+            memory_ready: true
+            readiness_state: ready_rich
+            triage:
+              decision: retrieve
+              reasoning: The query depends on project ownership and recent status from company memory.
+            diagnostics:
+              request_id: f30ee45b-06eb-4c46-9fa7-e76d29ba7131
+              duration_ms: 38420
+              estimated_tokens: 6200
+              gemini_calls_estimate: 3
+          isError: false
+        duration_ms: 38420
+        created_at: "2026-05-29T11:47:33.128000+00:00"
+    MemoryMcpUsageStatsRange:
+      type: object
+      required: [days, start_date, end_date]
+      properties:
+        days:
+          type: integer
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+    MemoryMcpUsageSummary:
+      type: object
+      properties:
+        total_calls:
+          type: integer
+        successful_calls:
+          type: integer
+        error_calls:
+          type: integer
+        success_rate:
+          type: integer
+        average_duration_ms:
+          type: integer
+        estimated_tokens:
+          type: integer
+        gemini_calls_estimate:
+          type: integer
+        retrieved_items_count:
+          type: integer
+        triage_only_calls:
+          type: integer
+        full_retrieval_calls:
+          type: integer
+        last_called_at:
+          type: string
+          format: date-time
+          nullable: true
+    MemoryMcpDailyUsagePoint:
+      type: object
+      required: [date]
+      properties:
+        date:
+          type: string
+          format: date
+        total_calls:
+          type: integer
+        successful_calls:
+          type: integer
+        tool_error_calls:
+          type: integer
+        quota_exceeded_calls:
+          type: integer
+        entitlement_blocked_calls:
+          type: integer
+        triage_only_calls:
+          type: integer
+        full_retrieval_calls:
+          type: integer
+        estimated_tokens:
+          type: integer
+        average_duration_ms:
+          type: integer
+    MemoryMcpHourlyHeatmapCell:
+      type: object
+      required: [weekday, hour, total_calls]
+      properties:
+        weekday:
+          type: integer
+        hour:
+          type: integer
+        total_calls:
+          type: integer
+    MemoryMcpStatusBreakdownItem:
+      type: object
+      required: [status, count]
+      properties:
+        status:
+          type: string
+        count:
+          type: integer
+    MemoryMcpUsageStatsResponse:
+      type: object
+      required: [range, summary]
+      properties:
+        range:
+          $ref: "#/components/schemas/MemoryMcpUsageStatsRange"
+        summary:
+          $ref: "#/components/schemas/MemoryMcpUsageSummary"
+        daily:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryMcpDailyUsagePoint"
+        hourly_heatmap:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryMcpHourlyHeatmapCell"
+        status_breakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryMcpStatusBreakdownItem"
+      example:
+        range:
+          days: 30
+          start_date: "2026-04-30"
+          end_date: "2026-05-29"
+        summary:
+          total_calls: 47
+          successful_calls: 41
+          error_calls: 6
+          success_rate: 87
+          average_duration_ms: 36240
+          estimated_tokens: 284600
+          gemini_calls_estimate: 118
+          retrieved_items_count: 312
+          triage_only_calls: 9
+          full_retrieval_calls: 32
+          last_called_at: "2026-05-29T11:47:33.128000+00:00"
+        daily:
+          - date: "2026-05-28"
+            total_calls: 6
+            successful_calls: 5
+            tool_error_calls: 1
+            quota_exceeded_calls: 0
+            entitlement_blocked_calls: 0
+            triage_only_calls: 2
+            full_retrieval_calls: 3
+            estimated_tokens: 41800
+            average_duration_ms: 29100
+          - date: "2026-05-29"
+            total_calls: 3
+            successful_calls: 3
+            tool_error_calls: 0
+            quota_exceeded_calls: 0
+            entitlement_blocked_calls: 0
+            triage_only_calls: 1
+            full_retrieval_calls: 2
+            estimated_tokens: 22400
+            average_duration_ms: 38420
+        hourly_heatmap:
+          - weekday: 1
+            hour: 9
+            total_calls: 4
+          - weekday: 1
+            hour: 14
+            total_calls: 7
+        status_breakdown:
+          - status: success
+            count: 41
+          - status: tool_error
+            count: 4
+          - status: quota_exceeded
+            count: 2

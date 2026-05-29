@@ -1,47 +1,73 @@
 ---
 title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+description: "Connect Memory MCP to your agent in minutes: generate a key, paste config, and run retrieve_memory."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+Get from zero to a successful `retrieve_memory` call in four steps.
 
 ## Prerequisites
 
-Before you begin, you must have:
+Before you begin:
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+- A PAM account with at least one connected memory source
+- Memory readiness in **Ready** state (see Memory MCP in the PAM app)
+- An MCP-compatible client (Cursor, Claude Code, or VS Code)
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Generate an agent API key">
+    Open [Memory MCP](https://pam.harmix.ai/for-developers) in the PAM app and click **Generate key**.
 
-    ```bash
-    npm install your-package
+    Copy the full key when shown — you cannot view the secret again after leaving the page. Keys use the format `pam_mkey_<prefix>.<secret>`.
+  </Step>
+  <Step title="Add the MCP server to your client">
+    Paste this configuration into your MCP client settings. Replace the placeholder with your full key.
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<prefix>.<secret>"
+          }
+        }
+      }
+    }
+    ```
+
+    See [Client setup](/client-setup) for Cursor, Claude Code, and VS Code-specific instructions.
+  </Step>
+  <Step title="Add agent instructions">
+    Add this snippet to your agent system prompt so it knows when to retrieve memory:
+
+    ```text
+    You have access to PAM Memory through the retrieve_memory MCP tool.
+
+    Use it when a request may depend on company-specific context:
+    people, projects, decisions, processes, priorities, history, customers,
+    documents, meetings, or internal terminology.
+
+    Prefer retrieving memory before making assumptions.
+
+    If retrieved context is partial or uncertain, say so and ask a focused follow-up.
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+  <Step title="Run a hello world prompt">
+    Ask your agent:
 
-    ```bash
-    your-cli init
+    ```text
+    What do we know about our current project priorities, and who is responsible for follow-up on each?
     ```
-  </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
-    ```
+    Your agent should call `retrieve_memory` with your prompt. A successful call marks your key as **MCP verified** on the Memory MCP page.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+<Check>
+  Setup complete when your agent returns company context from a successful `retrieve_memory` call.
+</Check>
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+<Tip>
+  Need the full protocol reference? See [MCP reference](/mcp-reference) and [retrieve_memory](/retrieve-memory).
 </Tip>

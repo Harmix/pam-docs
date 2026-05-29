@@ -1,0 +1,83 @@
+---
+title: "Quotas and limits"
+description: "Memory MCP rate limits, plan tiers, entitlement requirements, and what counts toward quotas."
+---
+
+Memory MCP enforces per-account limits on `retrieve_memory` calls. Limits depend on your subscription plan.
+
+MCP calls do **not** consume chat credits, but an active subscription with credits remaining is required.
+
+## What is counted
+
+**Counted:** `tools/call` with `name: retrieve_memory` on `POST /v1/mcp/memory` — including blocked calls after authentication (quota exceeded, entitlement blocked, etc.).
+
+**Not counted:**
+
+- `initialize`, `initialized`, `tools/list`, `resources/list`, `prompts/list`
+- Developer REST API calls (`/v1/dev/*`)
+
+## Plan limits
+
+| Plan | Weekly limit | Monthly limit |
+|------|-------------|---------------|
+| Trial | 25 | 100 |
+| Paid | 300 | 1,000 |
+| Custom | 3,000 | 10,000 |
+
+All plans also enforce an hourly limit of **100** requests.
+
+## Reset schedule
+
+| Window | Resets at |
+|--------|-----------|
+| Hourly | Start of each UTC hour |
+| Weekly | Start of each UTC week |
+| Monthly | Start of each UTC month |
+
+## Entitlement gate
+
+`entitlement_required` is returned when your account has no remaining credits. Upgrade or renew your PAM subscription to continue.
+
+Memory MCP uses credits as a subscription gate only — individual retrieval calls do not decrement chat credits.
+
+## Near-limit warnings
+
+The **Usage** tab on the Memory MCP page shows quota status:
+
+| Status | Meaning |
+|--------|---------|
+| `ok` | Within limits |
+| `near_limit` | Above 80% of monthly limit |
+| `limited` | Monthly limit reached |
+| `entitlement_required` | No active subscription |
+
+Check live quota via `GET /v1/dev/mcp-config` — see [Developer API overview](/developer-api-overview).
+
+## Example: quota_exceeded response
+
+Tool-level error shape (HTTP 200 with `isError: true`):
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+    }
+  ],
+  "structuredContent": {
+    "status": "error",
+    "error_code": "quota_exceeded",
+    "error_message": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+  },
+  "isError": true
+}
+```
+
+## Request history
+
+Each `retrieve_memory` attempt stores the full prompt and full tool response for review on **Memory MCP → Request history** and via `GET /v1/dev/mcp-requests`.
+
+<Warning>
+  `quota_exceeded` applies only to `retrieve_memory` via `tools/call`, not to handshake methods or Developer REST calls.
+</Warning>

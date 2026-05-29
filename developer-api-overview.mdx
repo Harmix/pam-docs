@@ -1,0 +1,417 @@
+---
+title: "Developer API overview"
+description: "REST endpoints for Memory MCP key management, readiness, usage analytics, and request history."
+---
+
+The Developer API supports the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app. Use it to programmatically manage Memory MCP setup, inspect readiness, and review retrieval history.
+
+<Note>
+  These endpoints are **not** the Memory MCP protocol. For agent retrieval, use `POST /v1/mcp/memory` — see [MCP reference](/mcp-reference).
+</Note>
+
+## Authentication
+
+Developer API endpoints require a **PAM access JWT** in the `Authorization` header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+This is different from Memory MCP authentication, which uses a static `pam_mkey` agent API key.
+
+| Auth type | Used for | Header format |
+|-----------|----------|---------------|
+| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) | `Authorization: pam_mkey_<prefix>.<secret>` |
+| Access JWT | Developer API (`/v1/dev/*`) | `Authorization: Bearer <token>` |
+
+## Base URL
+
+```
+https://api.pam.harmix.ai
+```
+
+## Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/v1/dev/readiness` | Memory readiness status for setup checklist |
+| `GET` | `/v1/dev/mcp-config` | MCP URL, key prefix, quota, Claude config example |
+| `GET` | `/v1/dev/mcp-usage-stats` | Usage analytics (1–90 days) |
+| `GET` | `/v1/dev/mcp-requests` | Paginated request history |
+| `GET` | `/v1/dev/mcp-requests/{request_id}` | Single request detail |
+| `POST` | `/v1/dev/rotate-key` | Issue new key, revoke old |
+| `POST` | `/v1/dev/revoke-key` | Revoke active key |
+
+## Not counted toward MCP quotas
+
+Developer REST calls do not count toward Memory MCP retrieval limits. Only `tools/call` → `retrieve_memory` on `/v1/mcp/memory` is metered.
+
+## Typical workflows
+
+<AccordionGroup>
+  <Accordion title="Check if memory is ready before connecting an agent">
+    Call `GET /v1/dev/readiness` and confirm `ready: true` before testing `retrieve_memory` from your MCP client.
+  </Accordion>
+  <Accordion title="Get live MCP config for your account">
+    Call `GET /v1/dev/mcp-config` when you want account-specific MCP connection details in one response. See [mcp-config fields](#mcp-config-fields) below — most integrations only need a subset.
+  </Accordion>
+  <Accordion title="Rotate a compromised key">
+    Call `POST /v1/dev/rotate-key` with your access JWT. Copy the new `api_key` immediately and update your MCP client configuration.
+  </Accordion>
+  <Accordion title="Debug a failed retrieval">
+    Call `GET /v1/dev/mcp-requests` to list recent calls, then `GET /v1/dev/mcp-requests/{request_id}` for full prompt and response details.
+  </Accordion>
+</AccordionGroup>
+
+## mcp-config fields
+
+`GET /v1/dev/mcp-config` is a **dashboard aggregate** — one poll for the Memory MCP UI. External automation can use it too, but you usually do not need every field.
+
+<Note>
+  `api_key` is almost always `null`. The full secret is returned only once from `POST /v1/dev/rotate-key`. Use `key_prefix` plus your stored secret, or rotate and capture the new key immediately.
+</Note>
+
+### Use these for MCP setup
+
+| Field | Why |
+|-------|-----|
+| `mcp_url` | Memory MCP endpoint for your environment |
+| `mcp_server_name` | Server id (`pam_memory_mcp`) — informational |
+| `key_prefix` | Identifies your active agent key (`pam_mkey_<prefix>`) |
+| `claude_code_config_example` | Ready-to-paste MCP client block; uses a placeholder when `api_key` is null |
+| `mcp_verified` | `true` after at least one successful `retrieve_memory` call |
+
+Typical flow: poll until `readiness.ready` is true → paste `claude_code_config_example` → inject your key → run `hello_world_prompt` → confirm `mcp_verified`.
+
+### Optional convenience copies
+
+| Field | Notes |
+|-------|-------|
+| `system_prompt_snippet` | Same text as [Quickstart](/quickstart) step 3 — handy to keep agents in sync with PAM defaults |
+| `hello_world_prompt` | Suggested first test prompt after connecting your MCP client |
+
+You can hardcode these from the docs instead of reading them from the API.
+
+### Also included (prefer dedicated endpoints when polling)
+
+| Field | Prefer instead |
+|-------|----------------|
+| `readiness` | `GET /v1/dev/readiness` — lighter if you only check memory pipeline status |
+| `quota` | Stay on `mcp-config` for a quick quota badge, or use `GET /v1/dev/mcp-usage-stats` for trends |
+
+### Safe to ignore in code
+
+| Field | Notes |
+|-------|-------|
+| `developer_api_notice` | Human-readable pointer to other `/v1/dev/*` routes |
+| `api_key` when `null` | Expected — fetch secrets via `rotate-key`, not this endpoint |
+
+### Example response (abbreviated)
+
+```json
+{
+  "mcp_url": "https://api.pam.harmix.ai/v1/mcp/memory",
+  "mcp_server_name": "pam_memory_mcp",
+  "api_key": null,
+  "key_prefix": "pam_mkey_a3f8c21b",
+  "mcp_verified": true,
+  "system_prompt_snippet": "You have access to PAM Memory through the retrieve_memory MCP tool. Use it when a request may depend on company-specific context: people, projects, decisions, processes, priorities, history, customers, documents, meetings, or internal terminology. Prefer retrieving memory before making assumptions. If retrieved context is partial or uncertain, say so and ask a focused follow-up.",
+  "hello_world_prompt": "Summarize what you know about our company's current priorities and recent key projects based on retrieved memory.",
+  "claude_code_config_example": {
+    "mcpServers": {
+      "pam_memory": {
+        "type": "http",
+        "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+        "headers": {
+          "Authorization": "pam_mkey_<prefix>.<secret>"
+        }
+      }
+    }
+  },
+  "readiness": {
+    "ready": true,
+    "state": "ready_rich",
+    "connected_sources_count": 4,
+    "completed_sources_count": 4,
+    "latest_pipeline_status": "completed",
+    "estimated_wait_message": null,
+    "has_facts": true,
+    "has_context_markdown": true,
+    "has_tree_index": true
+  },
+  "quota": {
+    "plan": "paid",
+    "status": "ok",
+    "requests_this_week": 28,
+    "weekly_limit": 300,
+    "remaining_this_week": 272,
+    "requests_this_month": 187,
+    "monthly_limit": 1000,
+    "remaining_this_month": 813,
+    "usage_percent": 19,
+    "week_reset_at": "2026-06-02T00:00:00+00:00",
+    "month_reset_at": "2026-06-01T00:00:00+00:00"
+  },
+  "developer_api_notice": "You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key)."
+}
+```
+
+Full schema: OpenAPI **`DeveloperMcpConfigResponse`** in the Developer API reference.
+
+## Response examples
+
+All examples use fictional account data. Timestamps are ISO 8601 UTC.
+
+### `GET /v1/dev/readiness`
+
+```json
+{
+  "ready": true,
+  "state": "ready_rich",
+  "connected_sources_count": 4,
+  "completed_sources_count": 4,
+  "latest_pipeline_status": "completed",
+  "estimated_wait_message": null,
+  "has_facts": true,
+  "has_context_markdown": true,
+  "has_tree_index": true
+}
+```
+
+While sources are still syncing, `ready` is `false` and `estimated_wait_message` explains the wait:
+
+```json
+{
+  "ready": false,
+  "state": "processing",
+  "connected_sources_count": 2,
+  "completed_sources_count": 0,
+  "latest_pipeline_status": "running",
+  "estimated_wait_message": "Sources are connected but initial sync has not finished yet.",
+  "has_facts": false,
+  "has_context_markdown": false,
+  "has_tree_index": false
+}
+```
+
+### `POST /v1/dev/rotate-key`
+
+The full `api_key` is returned **once**. Store it immediately — subsequent `GET /v1/dev/mcp-config` calls return `api_key: null`.
+
+```json
+{
+  "api_key": "pam_mkey_a3f8c21b.Kx7vP2mNqR8sT4wY9zAbCdEfGh",
+  "key_prefix": "pam_mkey_a3f8c21b",
+  "rotated_at": "2026-05-29T14:22:08.451234+00:00"
+}
+```
+
+### `POST /v1/dev/revoke-key`
+
+```json
+{
+  "revoked": true
+}
+```
+
+### `GET /v1/dev/mcp-usage-stats?days=30`
+
+Daily series includes every calendar day in the range (zero-filled when there was no activity). `hourly_heatmap` uses `weekday` 0 = Sunday through 6 = Saturday.
+
+```json
+{
+  "range": {
+    "days": 30,
+    "start_date": "2026-04-30",
+    "end_date": "2026-05-29"
+  },
+  "summary": {
+    "total_calls": 47,
+    "successful_calls": 41,
+    "error_calls": 6,
+    "success_rate": 87,
+    "average_duration_ms": 36240,
+    "estimated_tokens": 284600,
+    "gemini_calls_estimate": 118,
+    "retrieved_items_count": 312,
+    "triage_only_calls": 9,
+    "full_retrieval_calls": 32,
+    "last_called_at": "2026-05-29T11:47:33.128000+00:00"
+  },
+  "daily": [
+    {
+      "date": "2026-05-27",
+      "total_calls": 0,
+      "successful_calls": 0,
+      "tool_error_calls": 0,
+      "quota_exceeded_calls": 0,
+      "entitlement_blocked_calls": 0,
+      "triage_only_calls": 0,
+      "full_retrieval_calls": 0,
+      "estimated_tokens": 0,
+      "average_duration_ms": 0
+    },
+    {
+      "date": "2026-05-28",
+      "total_calls": 6,
+      "successful_calls": 5,
+      "tool_error_calls": 1,
+      "quota_exceeded_calls": 0,
+      "entitlement_blocked_calls": 0,
+      "triage_only_calls": 2,
+      "full_retrieval_calls": 3,
+      "estimated_tokens": 41800,
+      "average_duration_ms": 29100
+    },
+    {
+      "date": "2026-05-29",
+      "total_calls": 3,
+      "successful_calls": 3,
+      "tool_error_calls": 0,
+      "quota_exceeded_calls": 0,
+      "entitlement_blocked_calls": 0,
+      "triage_only_calls": 1,
+      "full_retrieval_calls": 2,
+      "estimated_tokens": 22400,
+      "average_duration_ms": 38420
+    }
+  ],
+  "hourly_heatmap": [
+    { "weekday": 1, "hour": 9, "total_calls": 4 },
+    { "weekday": 1, "hour": 14, "total_calls": 7 },
+    { "weekday": 3, "hour": 11, "total_calls": 5 }
+  ],
+  "status_breakdown": [
+    { "status": "success", "count": 41 },
+    { "status": "tool_error", "count": 4 },
+    { "status": "quota_exceeded", "count": 2 }
+  ]
+}
+```
+
+### `GET /v1/dev/mcp-requests?limit=10&page=1`
+
+`response_json` is the stored MCP tool result — same shape as a live `tools/call` response (`content`, `structuredContent`, `isError`). Text fields may be truncated in this example.
+
+```json
+{
+  "items": [
+    {
+      "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+      "tool_name": "retrieve_memory",
+      "prompt": "Who owns the Meridian platform rollout and what blockers were flagged in the last week?",
+      "response_content_text": "# Retrieved Company Context\n\n**Query:** Who owns the Meridian platform rollout...\n\n**Summary:** The rollout is owned by the Platform Engineering group. Two blockers were flagged last week: delayed vendor sign-off and a staging environment capacity issue.\n\n---\n*Retrieved 9 items | Avg relevance: 91% | Coverage: comprehensive*",
+      "response_json": {
+        "content": [
+          {
+            "type": "text",
+            "text": "# Retrieved Company Context\n\n**Query:** Who owns the Meridian platform rollout..."
+          }
+        ],
+        "structuredContent": {
+          "status": "ok",
+          "memory_ready": true,
+          "readiness_state": "ready_rich",
+          "content_text": "# Retrieved Company Context\n\n...",
+          "triage": {
+            "decision": "retrieve",
+            "reasoning": "The query depends on project ownership and recent status from company memory.",
+            "rewritten_query": "Who owns the Meridian platform rollout and what blockers were flagged in the last week?"
+          },
+          "retrieval": {
+            "context_summary": "Meridian rollout is owned by Platform Engineering; two recent blockers involve vendor sign-off and staging capacity.",
+            "facts": [
+              {
+                "statement": "Platform Engineering owns the Meridian platform rollout through Q3.",
+                "relevance_score": 0.94,
+                "source_path": "company_context/projects/meridian_platform_rollout.md"
+              }
+            ],
+            "total_items": 9,
+            "avg_relevance_score": 0.91,
+            "coverage_assessment": "comprehensive"
+          },
+          "diagnostics": {
+            "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+            "duration_ms": 38420,
+            "estimated_tokens": 6200,
+            "sections_searched": [
+              "Company Context > Projects > Meridian Platform Rollout",
+              "Company Context > Operations > Weekly Status"
+            ],
+            "avg_relevance_score": 0.91,
+            "gemini_calls_estimate": 3
+          }
+        },
+        "isError": false
+      },
+      "duration_ms": 38420,
+      "created_at": "2026-05-29T11:47:33.128000+00:00"
+    },
+    {
+      "request_id": "8c1d4e2a-7b90-4f3c-9a1e-6d5c8b0f2e44",
+      "tool_name": "retrieve_memory",
+      "prompt": "What is our refund policy for enterprise customers?",
+      "response_content_text": "Monthly retrieve_memory quota exceeded. Retry after 2026-06-02T00:00:00+00:00.",
+      "response_json": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Monthly retrieve_memory quota exceeded. Retry after 2026-06-02T00:00:00+00:00."
+          }
+        ],
+        "structuredContent": {
+          "status": "error",
+          "error_code": "quota_exceeded",
+          "error_message": "Monthly retrieve_memory quota exceeded. Retry after 2026-06-02T00:00:00+00:00."
+        },
+        "isError": true
+      },
+      "duration_ms": 12,
+      "created_at": "2026-05-28T16:03:11.904000+00:00"
+    }
+  ],
+  "next_cursor": "2026-05-28T16:03:11.904000+00:00|1842",
+  "page_size": 10,
+  "total_count": 47,
+  "current_page": 1,
+  "total_pages": 5
+}
+```
+
+### `GET /v1/dev/mcp-requests/{request_id}`
+
+Same fields as a list item — use this endpoint when you already have a `request_id` and need the full stored prompt and response.
+
+```json
+{
+  "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+  "tool_name": "retrieve_memory",
+  "prompt": "Who owns the Meridian platform rollout and what blockers were flagged in the last week?",
+  "response_content_text": "# Retrieved Company Context\n\n**Query:** Who owns the Meridian platform rollout...",
+  "response_json": {
+    "content": [{ "type": "text", "text": "# Retrieved Company Context\n\n..." }],
+    "structuredContent": {
+      "status": "ok",
+      "memory_ready": true,
+      "readiness_state": "ready_rich",
+      "triage": { "decision": "retrieve", "reasoning": "..." },
+      "diagnostics": {
+        "request_id": "f30ee45b-06eb-4c46-9fa7-e76d29ba7131",
+        "duration_ms": 38420,
+        "estimated_tokens": 6200,
+        "gemini_calls_estimate": 3
+      }
+    },
+    "isError": false
+  },
+  "duration_ms": 38420,
+  "created_at": "2026-05-29T11:47:33.128000+00:00"
+}
+```
+
+## Related
+
+- [Setup and keys](/setup-and-keys) — key format and security
+- [MCP reference](/mcp-reference) — Memory MCP protocol
+- [Quotas and limits](/quotas-and-limits) — what counts toward limits

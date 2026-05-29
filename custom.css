@@ -1,0 +1,16 @@
+:root {
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Keep copyable snippets fully visible (no single-line truncation) */
+pre,
+pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

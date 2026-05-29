@@ -1,54 +1,166 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "PAM Developer Docs",
+  "description": "Memory MCP and Developer API documentation for PAM — connect external agents to company memory.",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#8c20f8",
+    "light": "#a855f7",
+    "dark": "#6b16c4"
   },
+  "fonts": {
+    "family": "Inter"
+  },
+  "appearance": {
+    "default": "light"
+  },
+  "css": "custom.css",
   "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
   },
+  "api": {
+    "baseUrl": "https://api.pam.harmix.ai",
+    "auth": {
+      "method": "bearer"
+    },
+    "playground": {
+      "display": "interactive"
+    }
+  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Memory MCP",
+        "href": "https://pam.harmix.ai/for-developers"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Open PAM",
+      "href": "https://pam.harmix.ai"
     }
+  },
+  "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Memory MCP",
+          "href": "https://pam.harmix.ai/for-developers",
+          "icon": "rocket"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "language": "en",
+        "tabs": [
+          {
+            "tab": "Memory MCP",
+            "groups": [
+              {
+                "group": "Getting started",
+                "pages": [
+                  "introduction",
+                  "quickstart",
+                  "setup-and-keys",
+                  "client-setup"
+                ]
+              },
+              {
+                "group": "Reference",
+                "pages": [
+                  "mcp-reference",
+                  "retrieve-memory",
+                  "quotas-and-limits",
+                  "error-codes"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Developer API",
+            "pages": [
+              "developer-api-overview",
+              {
+                "group": "Endpoints",
+                "openapi": "openapi/developer-api.yaml",
+                "pages": [
+                  "GET /v1/dev/readiness",
+                  "GET /v1/dev/mcp-config",
+                  "GET /v1/dev/mcp-usage-stats",
+                  "GET /v1/dev/mcp-requests",
+                  "GET /v1/dev/mcp-requests/{request_id}",
+                  "POST /v1/dev/rotate-key",
+                  "POST /v1/dev/revoke-key"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "language": "uk",
+        "tabs": [
+          {
+            "tab": "Memory MCP",
+            "groups": [
+              {
+                "group": "Початок роботи",
+                "pages": [
+                  "uk/introduction",
+                  "uk/quickstart",
+                  "uk/setup-and-keys",
+                  "uk/client-setup"
+                ]
+              },
+              {
+                "group": "Довідник",
+                "pages": [
+                  "uk/mcp-reference",
+                  "uk/retrieve-memory",
+                  "uk/quotas-and-limits",
+                  "uk/error-codes"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API для розробників",
+            "pages": [
+              "uk/developer-api-overview",
+              {
+                "group": "Endpoints",
+                "openapi": "openapi/developer-api.yaml",
+                "pages": [
+                  "GET /v1/dev/readiness",
+                  "GET /v1/dev/mcp-config",
+                  "GET /v1/dev/mcp-usage-stats",
+                  "GET /v1/dev/mcp-requests",
+                  "GET /v1/dev/mcp-requests/{request_id}",
+                  "POST /v1/dev/rotate-key",
+                  "POST /v1/dev/revoke-key"
+                ]
+              }
+            ]
+          }
+        ],
+        "navbar": {
+          "links": [
+            {
+              "label": "Memory MCP",
+              "href": "https://pam.harmix.ai/for-developers"
+            }
+          ],
+          "primary": {
+            "type": "button",
+            "label": "Відкрити PAM",
+            "href": "https://pam.harmix.ai"
+          }
+        }
+      }
+    ]
   },
   "contextual": {
     "options": [
@@ -56,17 +168,14 @@
       "view",
       "chatgpt",
       "claude",
-      "perplexity",
-      "mcp",
       "cursor",
-      "vscode"
+      "vscode",
+      "mcp"
     ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "website": "https://harmix.ai"
     }
   }
 }
