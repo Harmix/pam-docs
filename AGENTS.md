@@ -6,7 +6,7 @@
 ## About this project
 
 - Documentation site for **PAM Memory MCP** and the supporting **Developer REST API**
-- Deployed at [harmix.mintlify.app](https://harmix.mintlify.app) (English default, Ukrainian in `uk/`)
+- Deployed at [manager.harmix.ai/docs](https://manager.harmix.ai/docs) (English default, Ukrainian in `uk/`)
 - Pages are MDX files with YAML frontmatter
 - Configuration lives in `docs.json`
 - OpenAPI spec for Developer API: `openapi/developer-api.yaml`
@@ -17,7 +17,9 @@
 |------|-------|
 | Memory MCP | The read-only MCP server at `POST /v1/mcp/memory` |
 | `retrieve_memory` | The sole MCP tool in v1 |
-| `pam_mkey` | Agent API key format: `pam_mkey_<prefix>.<secret>` |
+| `pam_mkey` | Agent API key format: `pam_mkey_<prefix>.<secret>` (desktop/script clients) |
+| Browser OAuth | OAuth 2.1 + PKCE + DCR for Claude web and ChatGPT; scope `memory:read` |
+| Connected apps | PAM UI + `GET/POST /v1/dev/oauth-connections*` for browser LLM sessions |
 | Developer API | JWT-authenticated REST at `/v1/dev/*` |
 | Memory MCP | PAM app page for setup, keys, usage, and history (`/for-developers`) |
 | Readiness | Memory provisioning state before retrieval works |
@@ -36,7 +38,8 @@
 
 **Document:**
 - Memory MCP setup, protocol, `retrieve_memory`, quotas, errors
-- Developer API endpoints for key management, readiness, usage, history
+- Developer API endpoints for key management, readiness, usage, history, OAuth connections
+- Browser MCP setup (OAuth discovery, DCR, refresh tokens, Connected apps)
 
 **Do not document:**
 - Internal admin features, architecture diagrams, or database table names

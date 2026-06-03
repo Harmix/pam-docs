@@ -17,12 +17,24 @@ Developer API endpoints require a **PAM access JWT** in the `Authorization` head
 Authorization: Bearer <access_token>
 ```
 
-This is different from Memory MCP authentication, which uses a static `pam_mkey` agent API key.
+This is different from Memory MCP authentication, which supports **either**:
+
+- Static `pam_mkey` agent API keys (Cursor, Claude Code, scripts)
+- OAuth 2.1 Bearer tokens (browser-hosted LLM connectors such as Claude web)
 
 | Auth type | Used for | Header format |
 |-----------|----------|---------------|
-| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) | `Authorization: pam_mkey_<prefix>.<secret>` |
+| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) — desktop/script clients | `Authorization: pam_mkey_<prefix>.<secret>` |
+| OAuth Bearer | Memory MCP (`/v1/mcp/memory`) — browser LLM clients | `Authorization: Bearer <opaque_access_token>` |
 | Access JWT | Developer API (`/v1/dev/*`) | `Authorization: Bearer <token>` |
+
+Browser clients discover OAuth via:
+
+- `GET /.well-known/oauth-protected-resource`
+- `GET /.well-known/oauth-authorization-server`
+- `POST /v1/oauth/register` (DCR)
+
+Trusted browser redirect URIs include `https://claude.ai/api/mcp/auth_callback` and `https://chatgpt.com/connector/oauth/{id}`.
 
 ## Base URL
 
@@ -35,12 +47,14 @@ https://api.pam.harmix.ai
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/v1/dev/readiness` | Memory readiness status for setup checklist |
-| `GET` | `/v1/dev/mcp-config` | MCP URL, key prefix, quota, Claude config example |
+| `GET` | `/v1/dev/mcp-config` | MCP URL, OAuth URLs, key prefix, quota, Claude config example |
 | `GET` | `/v1/dev/mcp-usage-stats` | Usage analytics (1–90 days) |
 | `GET` | `/v1/dev/mcp-requests` | Paginated request history |
 | `GET` | `/v1/dev/mcp-requests/{request_id}` | Single request detail |
 | `POST` | `/v1/dev/rotate-key` | Issue new key, revoke old |
 | `POST` | `/v1/dev/revoke-key` | Revoke active key |
+| `GET` | `/v1/dev/oauth-connections` | List browser OAuth connections (ChatGPT, Claude web) |
+| `POST` | `/v1/dev/oauth-connections/{connection_id}/revoke` | Revoke a browser connection |
 
 ## Not counted toward MCP quotas
 
@@ -61,6 +75,9 @@ Developer REST calls do not count toward Memory MCP retrieval limits. Only `tool
   <Accordion title="Debug a failed retrieval">
     Call `GET /v1/dev/mcp-requests` to list recent calls, then `GET /v1/dev/mcp-requests/{request_id}` for full prompt and response details.
   </Accordion>
+  <Accordion title="List or revoke a browser LLM connection">
+    Call `GET /v1/dev/oauth-connections` to see ChatGPT and Claude web sessions (one row per refresh-token family). Revoke with `POST /v1/dev/oauth-connections/{connection_id}/revoke` — the same action as **Connected apps** in the PAM app.
+  </Accordion>
 </AccordionGroup>
 
 ## mcp-config fields
@@ -79,6 +96,14 @@ Developer REST calls do not count toward Memory MCP retrieval limits. Only `tool
 | `mcp_server_name` | Server id (`pam_memory_mcp`) — informational |
 | `key_prefix` | Identifies your active agent key (`pam_mkey_<prefix>`) |
 | `claude_code_config_example` | Ready-to-paste MCP client block; uses a placeholder when `api_key` is null |
+| `oauth_registration_url` | DCR endpoint (`POST /v1/oauth/register`) |
+| `oauth_authorization_url` | OAuth authorize endpoint |
+| `oauth_token_url` | OAuth token endpoint (`authorization_code` and `refresh_token` grants) |
+| `oauth_revocation_url` | Token revocation endpoint |
+| `oauth_protected_resource_metadata_url` | RFC 9728 protected-resource metadata |
+| `oauth_authorization_server_metadata_url` | Authorization server metadata |
+| `oauth_client_id` | Optional pre-issued client ID (browser clients normally use DCR; MCP URL only) |
+| `browser_mcp_setup_instructions` | Short setup hints for the Memory MCP UI |
 | `mcp_verified` | `true` after at least one successful `retrieve_memory` call |
 
 Typical flow: poll until `readiness.ready` is true → paste `claude_code_config_example` → inject your key → run `hello_world_prompt` → confirm `mcp_verified`.
@@ -211,6 +236,39 @@ The full `api_key` is returned **once**. Store it immediately — subsequent `GE
 ```json
 {
   "revoked": true
+}
+```
+
+### `GET /v1/dev/oauth-connections`
+
+Lists browser LLM connections (one item per refresh-token family). `expires_at` reflects refresh-token lifetime when present.
+
+```json
+{
+  "items": [
+    {
+      "id": 42,
+      "client_id": "pam_oauth_7f3a2b1c",
+      "client_name": "ChatGPT",
+      "scope": "memory:read",
+      "created_at": "2026-06-01T10:15:00+00:00",
+      "expires_at": "2026-07-01T10:15:00+00:00",
+      "last_used_at": "2026-06-03T08:22:11+00:00",
+      "revoked_at": null,
+      "status": "active"
+    }
+  ]
+}
+```
+
+`status` is `active`, `expired`, or `revoked`.
+
+### `POST /v1/dev/oauth-connections/{connection_id}/revoke`
+
+```json
+{
+  "revoked": true,
+  "id": 42
 }
 ```
 

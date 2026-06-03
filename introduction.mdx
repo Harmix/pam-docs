@@ -13,7 +13,7 @@ Memory MCP lets Claude Code, Cursor, or your own agent retrieve company-specific
 
 - Exposes a dedicated MCP server at `POST /v1/mcp/memory` (JSON-RPC 2.0 over HTTP)
 - Provides one production tool in v1: **`retrieve_memory`**
-- Authenticates with a static **`pam_mkey`** agent API key
+- Authenticates with a static **`pam_mkey`** agent API key (desktop agents) or **OAuth 2.1** Bearer tokens (Claude web, ChatGPT)
 - Keeps retrieval audit logs separate from in-app PAM Chat
 - Enforces per-account quotas on retrieval calls
 
@@ -44,7 +44,7 @@ Before you connect an MCP client:
 
 1. Connect at least one memory source in PAM (Gmail, Drive, Notion, Slack, or another supported integration)
 2. Wait for memory readiness to complete initial sync and processing
-3. Generate an agent API key from **Memory MCP** in the PAM app
+3. Choose your client type on **Memory MCP** — generate a `pam_mkey` for desktop agents, or copy the MCP URL for browser LLM connectors
 
 <Note>
   Client setup, key rotation, and live config examples are available on the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app.

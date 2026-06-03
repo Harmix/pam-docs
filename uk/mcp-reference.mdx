@@ -18,15 +18,40 @@ POST https://api.pam.harmix.ai/v1/mcp/memory
 
 ## Автентифікація
 
-Передавайте API ключ агента в кожному запиті:
+Memory MCP приймає **або** статичні ключі агента, **або** OAuth Bearer tokens.
+
+### Desktop / скрипт
 
 ```
 Authorization: pam_mkey_<prefix>.<secret>
 ```
 
-Деякі клієнти додають префікс `Bearer `. Сервер приймає обидва формати.
+Деякі клієнти додають префікс `Bearer `. Сервер приймає обидва формати для статичних ключів.
 
-Генеруйте ключі на [сторінці Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM — не через цей endpoint.
+Генеруйте ключі на [сторінці Memory MCP](https://pam.harmix.ai/for-developers) — не через цей endpoint.
+
+### Браузерні LLM (Claude web, ChatGPT)
+
+```
+Authorization: Bearer <opaque_oauth_access_token>
+```
+
+Токени через OAuth 2.1 Authorization Code + PKCE:
+
+| Крок | Endpoint |
+|------|----------|
+| Protected resource metadata | `GET /.well-known/oauth-protected-resource` |
+| Authorization server metadata | `GET /.well-known/oauth-authorization-server` |
+| Реєстрація клієнта (DCR) | `POST /v1/oauth/register` |
+| Авторизація | `GET /v1/oauth/authorize` |
+| Code / refresh | `POST /v1/oauth/token` (`authorization_code`, `refresh_token`) |
+| Відкликання | `POST /v1/oauth/revoke` |
+
+Scope: `memory:read`. Access token — близько 1 години; refresh token ротується при кожному оновленні, термін близько 30 днів. Повторне використання відкликаного refresh token відкликає всю сім'ю підключення.
+
+Альтернативне discovery: `GET /.well-known/oauth-protected-resource/v1/mcp/memory`.
+
+Див. [Налаштування клієнта](/uk/client-setup).
 
 ## Методи JSON-RPC
 

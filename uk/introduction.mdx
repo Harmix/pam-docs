@@ -13,7 +13,7 @@ Memory MCP дозволяє Claude Code, Cursor або вашому власно
 
 - Надає окремий MCP-сервер на `POST /v1/mcp/memory` (JSON-RPC 2.0 через HTTP)
 - Має один production-інструмент у v1: **`retrieve_memory`**
-- Автентифікується статичним API ключем агента **`pam_mkey`**
+- Автентифікується статичним **`pam_mkey`** (desktop-агенти) або **OAuth 2.1** Bearer tokens (Claude web, ChatGPT)
 - Зберігає журнал retrieval окремо від PAM Chat у застосунку
 - Застосовує квоти на виклики retrieval для кожного акаунта
 
@@ -44,7 +44,7 @@ Memory MCP дозволяє Claude Code, Cursor або вашому власно
 
 1. Підключіть хоча б одне джерело пам'яті в PAM (Gmail, Drive, Notion, Slack або іншу підтримувану інтеграцію)
 2. Дочекайтесь завершення початкової синхронізації та обробки пам'яті
-3. Згенеруйте API ключ агента на сторінці **Memory MCP** у застосунку PAM
+3. Оберіть тип клієнта на **Memory MCP** — згенеруйте `pam_mkey` для desktop або скопіюйте MCP URL для браузерних LLM
 
 <Note>
   Налаштування клієнта, ротація ключів і приклади конфігурації доступні на [сторінці Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM.

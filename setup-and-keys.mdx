@@ -1,11 +1,18 @@
 ---
 title: "Setup and keys"
-description: "Generate, rotate, and revoke pam_mkey agent API keys for Memory MCP authentication."
+description: "Generate pam_mkey keys for desktop agents and understand browser OAuth for Claude web and ChatGPT."
 ---
 
-Memory MCP authenticates every request with a static agent API key. Keys are scoped to memory retrieval for your PAM account.
+Memory MCP supports two authentication paths:
 
-## Key format
+| Client type | Auth | Examples |
+|-------------|------|----------|
+| Desktop / script | Static `pam_mkey` API key | Cursor, Claude Code, VS Code, terminal |
+| Browser LLM | OAuth 2.1 + PKCE Bearer token | Claude web (`claude.ai`), ChatGPT (`chatgpt.com`) |
+
+## Static agent API keys (desktop)
+
+### Key format
 
 ```
 Authorization: pam_mkey_<prefix>.<secret>
@@ -17,15 +24,16 @@ Send this value in the `Authorization` header on **every** request to `/v1/mcp/m
   Never commit API keys to source control. Rotate immediately if a key is exposed.
 </Warning>
 
-## Generate a key
+### Generate a key
 
 1. Open [Memory MCP](https://pam.harmix.ai/for-developers) in the PAM app
-2. Complete memory source connection and wait for readiness
-3. Click **Generate key** and copy the full secret immediately
+2. Choose **Desktop app or script**
+3. Complete memory source connection and wait for readiness
+4. Click **Generate key** and copy the full secret immediately
 
 You cannot view the secret again after leaving the page. The dashboard shows only the key prefix until you rotate.
 
-## One active key per account
+### One active key per account
 
 Each account has at most one active key at a time. Rotating a key:
 
@@ -33,7 +41,7 @@ Each account has at most one active key at a time. Rotating a key:
 - Revokes the previous key immediately
 - Requires updating your MCP client configuration
 
-## Rotate or revoke
+### Rotate or revoke
 
 | Action | Where | API |
 |--------|-------|-----|
@@ -42,20 +50,37 @@ Each account has at most one active key at a time. Rotating a key:
 
 Both dashboard actions and REST endpoints require your **PAM access JWT**, not a `pam_mkey`.
 
-See [Developer API overview](/developer-api-overview) for REST details.
+## Browser OAuth (Claude web & ChatGPT)
+
+Browser connectors do **not** use `pam_mkey`. They authenticate with OAuth access tokens after you approve `memory:read` on the PAM consent screen. Access tokens are short-lived (about 1 hour); compliant clients automatically renew them using a rotating refresh token (about 30 days) via `grant_type=refresh_token` at `POST /v1/oauth/token`.
+
+1. Add your **MCP server URL** in the browser LLM connector settings
+2. Complete OAuth login (PAM opens in your browser if needed)
+3. Click **Allow** on the consent screen — e.g. *"chatgpt.com will be able to read your PAM memory."*
+4. You are redirected back to the browser LLM
+
+Paste only the MCP URL. ChatGPT and Claude discover OAuth via dynamic client registration (DCR):
+
+- `GET /.well-known/oauth-protected-resource`
+- `GET /.well-known/oauth-authorization-server`
+- `POST /v1/oauth/register` (DCR)
+
+See [Client setup](/client-setup) for step-by-step ChatGPT and Claude web guides.
 
 ## MCP verified status
 
-Your key is marked **MCP verified** only after the first **successful** `retrieve_memory` call (`isError: false`).
+Your setup is marked **MCP verified** only after the first **successful** `retrieve_memory` call (`isError: false`).
 
-Blocked calls — quota exceeded, entitlement required, invalid arguments, memory not ready — do **not** verify the key.
+Blocked calls — quota exceeded, entitlement required, invalid arguments, memory not ready — do **not** verify the connection.
 
 ## Security practices
 
-- Store keys in environment variables or secret managers, not in committed config files
+- Store `pam_mkey` secrets in environment variables or secret managers
 - Rotate keys when team members leave or a key may have been shared
-- Use separate keys per environment if you operate multiple agent deployments
+- Browser OAuth tokens are opaque, scoped to `memory:read`, and use one-time refresh-token rotation (reuse revokes the whole connection)
+- Revoke a browser connection anytime from **Memory MCP → Connected apps**
+- Cancel on the PAM consent screen returns you to the requesting site without granting access
 
 <Info>
-  The secret is shown once at issuance or rotation. After that, only the key prefix is visible in the Memory MCP dashboard.
+  The static key secret is shown once at issuance or rotation. Browser connectors do not need a pre-issued OAuth client ID.
 </Info>

@@ -1,11 +1,18 @@
 ---
 title: "Налаштування та ключі"
-description: "Генеруйте, оновлюйте та відкликайте API ключі pam_mkey для автентифікації Memory MCP."
+description: "Генеруйте pam_mkey для desktop-агентів і налаштуйте браузерний OAuth для Claude web та ChatGPT."
 ---
 
-Memory MCP автентифікує кожен запит статичним API ключем агента. Ключі обмежені доступом до retrieval пам'яті для вашого акаунта PAM.
+Memory MCP підтримує два шляхи автентифікації:
 
-## Формат ключа
+| Тип клієнта | Auth | Приклади |
+|-------------|------|----------|
+| Desktop / скрипт | Статичний API ключ `pam_mkey` | Cursor, Claude Code, VS Code, термінал |
+| Браузерний LLM | OAuth 2.1 + PKCE Bearer token | Claude web (`claude.ai`), ChatGPT (`chatgpt.com`) |
+
+## Статичні API ключі агента (desktop)
+
+### Формат ключа
 
 ```
 Authorization: pam_mkey_<prefix>.<secret>
@@ -17,15 +24,16 @@ Authorization: pam_mkey_<prefix>.<secret>
   Ніколи не комітьте API ключі в репозиторій. Негайно оновіть ключ, якщо він розкритий.
 </Warning>
 
-## Генерація ключа
+### Генерація ключа
 
 1. Відкрийте [Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM
-2. Підключіть джерела пам'яті та дочекайтесь readiness
-3. Натисніть **Generate key** і одразу скопіюйте повний секрет
+2. Оберіть **Desktop app or script**
+3. Підключіть джерела пам'яті та дочекайтесь readiness
+4. Натисніть **Generate key** і одразу скопіюйте повний секрет
 
 Після виходу зі сторінки секрет більше не відображається. У dashboard видно лише префікс ключа, доки ви його не оновите.
 
-## Один активний ключ на акаунт
+### Один активний ключ на акаунт
 
 На акаунт може бути лише один активний ключ. Під час ротації:
 
@@ -33,7 +41,7 @@ Authorization: pam_mkey_<prefix>.<secret>
 - Попередній ключ негайно відкликається
 - Потрібно оновити конфігурацію MCP-клієнта
 
-## Ротація або відкликання
+### Ротація або відкликання
 
 | Дія | Де | API |
 |-----|-----|-----|
@@ -42,20 +50,37 @@ Authorization: pam_mkey_<prefix>.<secret>
 
 І дії в dashboard, і REST endpoints потребують **PAM access JWT**, а не `pam_mkey`.
 
-Деталі REST — у [Огляді API для розробників](/uk/developer-api-overview).
+## Браузерний OAuth (Claude web і ChatGPT)
+
+Браузерні конектори **не** використовують `pam_mkey`. Вони автентифікуються OAuth access token після підтвердження `memory:read` на екрані згоди PAM. Access token короткоживучий (близько 1 години); сумісні клієнти автоматично оновлюють його через rotating refresh token (близько 30 днів) з `grant_type=refresh_token` на `POST /v1/oauth/token`.
+
+1. Додайте **MCP server URL** у налаштуваннях браузерного LLM-конектора
+2. Пройдіть OAuth-вхід (PAM відкриється в браузері, якщо потрібно)
+3. Натисніть **Allow** на екрані згоди — наприклад, *«chatgpt.com зможе читати вашу PAM memory»*
+4. Вас перенаправить назад у браузерний LLM
+
+Вставте лише MCP URL. ChatGPT і Claude знаходять OAuth через dynamic client registration (DCR):
+
+- `GET /.well-known/oauth-protected-resource`
+- `GET /.well-known/oauth-authorization-server`
+- `POST /v1/oauth/register` (DCR)
+
+Детальні кроки — у [Налаштуванні клієнта](/uk/client-setup).
 
 ## Статус MCP verified
 
-Ключ позначається як **MCP verified** лише після першого **успішного** виклику `retrieve_memory` (`isError: false`).
+Підключення позначається як **MCP verified** лише після першого **успішного** виклику `retrieve_memory` (`isError: false`).
 
-Заблоковані виклики — quota exceeded, entitlement required, invalid arguments, memory not ready — **не** підтверджують ключ.
+Заблоковані виклики — quota exceeded, entitlement required, invalid arguments, memory not ready — **не** підтверджують підключення.
 
 ## Практики безпеки
 
-- Зберігайте ключі в змінних середовища або secret manager, а не в конфігах репозиторію
+- Зберігайте `pam_mkey` у змінних середовища або secret manager
 - Оновлюйте ключі, коли співробітник залишає команду або ключ міг бути поширений
-- Використовуйте окремі ключі для різних середовищ, якщо у вас кілька agent deployments
+- OAuth-токени непрозорі, обмежені scope `memory:read`, з одноразовою ротацією refresh token (повторне використання відкликає все підключення)
+- Відкликайте браузерне підключення в **Memory MCP → Connected apps**
+- **Cancel** на екрані згоди PAM повертає на сайт запитувача без доступу
 
 <Info>
-  Секрет показується один раз під час видачі або ротації. Після цього в dashboard Memory MCP видно лише префікс ключа.
+  Секрет статичного ключа показується один раз під час видачі або ротації. Браузерним конекторам не потрібен попередньо виданий OAuth client ID.
 </Info>
