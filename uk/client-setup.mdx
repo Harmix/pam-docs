@@ -1,15 +1,73 @@
 ---
 title: "Налаштування клієнта"
-description: "Налаштуйте Memory MCP у Cursor, Claude Code та VS Code з готовими прикладами mcp.json."
+description: "Налаштуйте Memory MCP у Cursor, Claude Code, VS Code, Claude web та ChatGPT."
 ---
 
-Додайте MCP-сервер Memory MCP до вашого agent client, використовуючи endpoint і ключ з розділу [Налаштування та ключі](/uk/setup-and-keys).
+Додайте MCP-сервер Memory MCP, використовуючи endpoint з розділу [Налаштування та ключі](/uk/setup-and-keys).
 
 **Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
 
+## Браузерні LLM-конектори
+
+Для Claude web і ChatGPT використовуйте OAuth 2.1 + PKCE. **Достатньо лише MCP URL** — браузерний клієнт знаходить OAuth і реєструється через dynamic client registration (DCR) автоматично.
+
+<Tabs>
+  <Tab title="ChatGPT (chatgpt.com)">
+    1. Відкрийте **Settings** → **Apps**.
+    2. Відкрийте **Advanced settings** і увімкніть **Developer mode** (підтвердіть попередження про підвищений ризик, якщо з’явиться).
+    3. Натисніть **Create app** (у Advanced settings або в розділі Enabled apps).
+    4. **Name:** будь-яка назва (наприклад, PAM Memory).
+    5. У **Connection** оберіть **Server URL** і вставте MCP URL з [Memory MCP](https://pam.harmix.ai/for-developers) або `GET /v1/dev/mcp-config`. **Authentication** залиште **OAuth** — Client ID не потрібен.
+    6. Поставте галочку **I understand and want to continue**, потім натисніть **Create**.
+    7. Натисніть **Sign in with** [назва додатка]. ChatGPT відкриє PAM для входу, якщо потрібно.
+    8. На екрані підтвердження PAM натисніть **Allow**.
+
+    <Tip>
+      ChatGPT використовує redirect URL на кшталт `https://chatgpt.com/connector/oauth/{id}`. PAM приймає довірені callback-шляхи `chatgpt.com` автоматично.
+    </Tip>
+  </Tab>
+  <Tab title="Claude web (claude.ai)">
+    1. У Claude відкрийте **Settings** → **Connectors** → **Add custom connector**.
+    2. **Name:** будь-яка назва.
+    3. **Remote MCP server URL:** вставте MCP URL.
+    4. Натисніть **Add** — OAuth Client ID не потрібен (DCR реєструє клієнта автоматично).
+    5. Claude відкриє PAM для входу, якщо потрібно.
+    6. На екрані PAM натисніть **Allow**.
+
+    <Note>
+      Claude web може показати конектор як доданий до підтвердження в PAM. Доступ починається лише після **Allow** на екрані згоди PAM.
+    </Note>
+  </Tab>
+</Tabs>
+
+### OAuth discovery endpoints
+
+Браузерні клієнти знаходять OAuth через:
+
+| Endpoint | Призначення |
+|----------|-------------|
+| `GET /.well-known/oauth-protected-resource` | Protected resource metadata (RFC 9728) |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+| `POST /v1/oauth/register` | Dynamic client registration (DCR) |
+
+Scope: `memory:read` (лише читання корпоративної пам'яті).
+
+**Оновлення токена:** після першого OAuth-підтвердження ChatGPT і Claude можуть викликати `POST /v1/oauth/token` з `grant_type=refresh_token` для нового access token без повторного входу. Access token — близько 1 години; refresh token — близько 30 днів. PAM ротує refresh token при кожному оновленні (OAuth 2.1). Повторне використання відкликаного refresh token відкликає всю сім'ю підключення — потрібно підключитися знову.
+
+### Керування браузерними підключеннями
+
+Перегляд і відкликання — у **Memory MCP → Connected apps** у PAM або через Developer API:
+
+| Метод | Шлях | Призначення |
+|-------|------|-------------|
+| `GET` | `/v1/dev/oauth-connections` | Список активних, прострочених і відкликаних підключень |
+| `POST` | `/v1/dev/oauth-connections/{id}/revoke` | Відкликати підключення (вся сім'я refresh token) |
+
+## Desktop-агенти
+
 <Tabs>
   <Tab title="Cursor">
-    1. Відкрийте **Cursor Settings** → **MCP** (або `Ctrl+Shift+P` → **Open MCP settings**)
+    1. **Cursor Settings** → **MCP**
     2. Додайте до `mcp.json`:
 
     ```json
@@ -28,71 +86,34 @@ description: "Налаштуйте Memory MCP у Cursor, Claude Code та VS Cod
     3. Перезавантажте Cursor і переконайтеся, що `pam_memory` підключено
   </Tab>
   <Tab title="Claude Code">
-    Додайте сервер через CLI Claude Code:
-
     ```bash
     claude mcp add --transport http pam_memory https://api.pam.harmix.ai/v1/mcp/memory \
       --header "Authorization: pam_mkey_<prefix>.<secret>"
     ```
-
-    Або вставте JSON-конфіг у налаштування MCP Claude Code:
-
-    ```json
-    {
-      "mcpServers": {
-        "pam_memory": {
-          "type": "http",
-          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
-          "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
-          }
-        }
-      }
-    }
-    ```
   </Tab>
   <Tab title="VS Code">
-    Створіть або оновіть `.vscode/mcp.json` у workspace:
-
-    ```json
-    {
-      "servers": {
-        "pam_memory": {
-          "type": "http",
-          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
-          "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
-          }
-        }
-      }
-    }
-    ```
+    Оновіть `.vscode/mcp.json` аналогічно до прикладу Cursor.
   </Tab>
 </Tabs>
 
 ## Метадані сервера
-
-Після підключення MCP handshake повертає:
 
 | Поле | Значення |
 |------|----------|
 | Server name | `pam_memory_mcp` |
 | Protocol version | `2024-11-05` |
 | Tools (v1) | лише `retrieve_memory` |
-| Resources / prompts | порожні списки у v1 |
 
-Відповідь може містити заголовок `Mcp-Session-Id` для безперервності сесії.
+Інструмент `retrieve_memory` має анотації `readOnlyHint: true`, `destructiveHint: false`.
 
-## Перевірте підключення
-
-Запустіть у агенті hello world prompt:
+## Перевірка підключення
 
 ```text
-Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?
+What do we know about our current project priorities, and who is responsible for follow-up on each?
 ```
 
-Перевірте **Memory MCP → Request history** у застосунку PAM, щоб переконатися, що виклик записано.
+Перевірте **Memory MCP → Request history** у PAM.
 
 <Tip>
-  Актуальний конфіг із URL вашого акаунта та префіксом ключа доступний через `GET /v1/dev/mcp-config` — див. [Огляд API для розробників](/uk/developer-api-overview).
+  Актуальний конфіг з URL, OAuth endpoints і префіксом ключа — `GET /v1/dev/mcp-config`. Див. [Огляд API для розробників](/uk/developer-api-overview).
 </Tip>

@@ -3,19 +3,19 @@ title: "Швидкий старт"
 description: "Підключіть Memory MCP до агента за кілька хвилин: згенеруйте ключ, вставте конфіг і виконайте retrieve_memory."
 ---
 
-Пройдіть від нуля до успішного виклику `retrieve_memory` у чотири кроки.
+Пройдіть від нуля до успішного виклику `retrieve_memory`. Оберіть шлях для вашого клієнта.
 
 ## Передумови
 
-Перед початком переконайтеся, що у вас є:
+- Акаунт PAM із підключеним джерелом пам'яті
+- Статус **Ready** у Memory MCP
+- MCP-сумісний клієнт
 
-- Акаунт PAM із підключеним хоча б одним джерелом пам'яті
-- Статус готовності пам'яті **Ready** (див. Memory MCP у застосунку PAM)
-- MCP-сумісний клієнт (Cursor, Claude Code або VS Code)
+## Desktop-агенти (Cursor, Claude Code, VS Code)
 
 <Steps>
   <Step title="Згенеруйте API ключ агента">
-    Відкрийте [Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM і натисніть **Generate key**.
+    Відкрийте [Memory MCP](https://pam.harmix.ai/for-developers), оберіть **Desktop app or script** і натисніть **Generate key**.
 
     Скопіюйте повний ключ одразу — після виходу зі сторінки секрет більше не відображається. Формат ключа: `pam_mkey_<prefix>.<secret>`.
   </Step>
@@ -60,7 +60,26 @@ description: "Підключіть Memory MCP до агента за кільк�
     Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?
     ```
 
-    Агент має викликати `retrieve_memory` із вашим prompt. Успішний виклик позначає ключ як **MCP verified** на сторінці Memory MCP.
+    Агент має викликати `retrieve_memory`. Успішний виклик позначає ключ як **MCP verified**.
+  </Step>
+</Steps>
+
+## Браузерні конектори (ChatGPT, Claude web)
+
+<Steps>
+  <Step title="Скопіюйте MCP URL">
+    У Memory MCP оберіть **Web browser LLM** і скопіюйте **MCP server URL**.
+  </Step>
+  <Step title="Додайте custom connector">
+    У ChatGPT або Claude web додайте MCP-конектор і вставте URL. OAuth Client ID не потрібен — конектор реєструється через DCR автоматично.
+
+    Деталі — у [Налаштуванні клієнта](/uk/client-setup) (вкладки `chatgpt.com` та `claude.ai`).
+  </Step>
+  <Step title="Підтвердіть доступ у PAM">
+    Увійдіть у PAM і натисніть **Allow** (наприклад, *«chatgpt.com зможе читати вашу PAM memory»*). **Cancel** повертає вас без доступу.
+  </Step>
+  <Step title="Запустіть hello world prompt">
+    Поставте те саме тестове запитання й перевірте **Request history** у Memory MCP.
   </Step>
 </Steps>
 

@@ -5,7 +5,7 @@ info:
     REST endpoints for Memory MCP key management, readiness, usage analytics, and request history.
 
     These endpoints require a PAM access JWT (`Authorization: Bearer <token>`).
-    They are separate from the Memory MCP protocol at `POST /v1/mcp/memory`, which uses `pam_mkey` authentication.
+    They are separate from the Memory MCP protocol at `POST /v1/mcp/memory`, which accepts either `pam_mkey` agent keys or OAuth Bearer tokens (browser LLM clients).
 
     Developer REST calls are not counted toward Memory MCP retrieval quotas.
   version: 1.0.0
@@ -168,6 +168,44 @@ paths:
                 required: [revoked]
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /v1/dev/oauth-connections:
+    get:
+      operationId: listDeveloperOAuthConnections
+      summary: List browser OAuth connections
+      description: |
+        Returns Memory MCP OAuth sessions for browser LLM clients (e.g. ChatGPT, Claude web).
+        One list item per refresh-token family. `expires_at` uses refresh-token lifetime when set.
+      responses:
+        "200":
+          description: OAuth connection list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryMcpOAuthConnectionListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/dev/oauth-connections/{connection_id}/revoke:
+    post:
+      operationId: revokeDeveloperOAuthConnection
+      summary: Revoke browser OAuth connection
+      description: Revokes the refresh-token family for the given connection id (same as Connected apps in the PAM UI).
+      parameters:
+        - name: connection_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Connection revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryMcpOAuthConnectionRevokeResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Connection not found
 components:
   securitySchemes:
     bearerAuth:
@@ -329,6 +367,35 @@ components:
           type: string
           nullable: true
           description: Human-readable pointer to other /v1/dev routes. Safe to ignore in automation.
+        oauth_client_id:
+          type: string
+          nullable: true
+          description: Optional pre-issued OAuth client id. Browser clients normally use DCR with MCP URL only.
+        oauth_registration_url:
+          type: string
+          nullable: true
+          description: Dynamic client registration endpoint (POST /v1/oauth/register).
+        oauth_authorization_url:
+          type: string
+          nullable: true
+        oauth_token_url:
+          type: string
+          nullable: true
+          description: Token endpoint supporting authorization_code and refresh_token grants.
+        oauth_revocation_url:
+          type: string
+          nullable: true
+        oauth_protected_resource_metadata_url:
+          type: string
+          nullable: true
+        oauth_authorization_server_metadata_url:
+          type: string
+          nullable: true
+        browser_mcp_setup_instructions:
+          type: array
+          items:
+            type: string
+          description: Short browser MCP setup hints for the Memory MCP UI.
       example:
         mcp_url: https://api.pam.harmix.ai/v1/mcp/memory
         mcp_server_name: pam_memory_mcp
@@ -367,7 +434,87 @@ components:
           usage_percent: 19
           week_reset_at: "2026-06-02T00:00:00+00:00"
           month_reset_at: "2026-06-01T00:00:00+00:00"
-        developer_api_notice: You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key).
+        developer_api_notice: You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key, oauth-connections).
+        oauth_registration_url: https://api.pam.harmix.ai/v1/oauth/register
+        oauth_authorization_url: https://api.pam.harmix.ai/v1/oauth/authorize
+        oauth_token_url: https://api.pam.harmix.ai/v1/oauth/token
+        oauth_revocation_url: https://api.pam.harmix.ai/v1/oauth/revoke
+        oauth_protected_resource_metadata_url: https://api.pam.harmix.ai/.well-known/oauth-protected-resource
+        oauth_authorization_server_metadata_url: https://api.pam.harmix.ai/.well-known/oauth-authorization-server
+        browser_mcp_setup_instructions:
+          - Paste your MCP server URL in ChatGPT or Claude web.
+          - Approve memory:read on the PAM consent screen.
+    MemoryMcpOAuthConnectionStatus:
+      type: string
+      enum: [active, expired, revoked]
+    MemoryMcpOAuthConnectionItem:
+      type: object
+      required:
+        - id
+        - client_id
+        - scope
+        - created_at
+        - expires_at
+        - status
+      properties:
+        id:
+          type: integer
+          description: Connection id (refresh-token family anchor). Use for revoke.
+        client_id:
+          type: string
+        client_name:
+          type: string
+          nullable: true
+        scope:
+          type: string
+          example: memory:read
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          description: Refresh-token expiry when present, otherwise access-token expiry.
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: "#/components/schemas/MemoryMcpOAuthConnectionStatus"
+    MemoryMcpOAuthConnectionListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryMcpOAuthConnectionItem"
+      example:
+        items:
+          - id: 42
+            client_id: pam_oauth_7f3a2b1c
+            client_name: ChatGPT
+            scope: memory:read
+            created_at: "2026-06-01T10:15:00+00:00"
+            expires_at: "2026-07-01T10:15:00+00:00"
+            last_used_at: "2026-06-03T08:22:11+00:00"
+            revoked_at: null
+            status: active
+    MemoryMcpOAuthConnectionRevokeResponse:
+      type: object
+      required: [revoked, id]
+      properties:
+        revoked:
+          type: boolean
+        id:
+          type: integer
+      example:
+        revoked: true
+        id: 42
     DeveloperRotateApiKeyResponse:
       type: object
       required: [api_key, rotated_at]

@@ -17,12 +17,21 @@ Developer API endpoints потребують **PAM access JWT** у заголо�
 Authorization: Bearer <access_token>
 ```
 
-Це відрізняється від автентифікації Memory MCP, яка використовує статичний API ключ агента `pam_mkey`.
+Це відрізняється від автентифікації Memory MCP, яка підтримує **обидва** варіанти:
 
 | Тип auth | Для чого | Формат заголовка |
 |----------|----------|------------------|
-| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) | `Authorization: pam_mkey_<prefix>.<secret>` |
+| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) — desktop/скрипт | `Authorization: pam_mkey_<prefix>.<secret>` |
+| OAuth Bearer | Memory MCP (`/v1/mcp/memory`) — браузерні LLM | `Authorization: Bearer <opaque_access_token>` |
 | Access JWT | Developer API (`/v1/dev/*`) | `Authorization: Bearer <token>` |
+
+Браузерні клієнти знаходять OAuth через:
+
+- `GET /.well-known/oauth-protected-resource`
+- `GET /.well-known/oauth-authorization-server`
+- `POST /v1/oauth/register` (DCR)
+
+Довірені redirect URI: `https://claude.ai/api/mcp/auth_callback` та `https://chatgpt.com/connector/oauth/{id}`.
 
 ## Base URL
 
@@ -41,6 +50,8 @@ https://api.pam.harmix.ai
 | `GET` | `/v1/dev/mcp-requests/{request_id}` | Деталі одного запиту |
 | `POST` | `/v1/dev/rotate-key` | Видати новий ключ, відкликати старий |
 | `POST` | `/v1/dev/revoke-key` | Відкликати активний ключ |
+| `GET` | `/v1/dev/oauth-connections` | Список браузерних OAuth-підключень |
+| `POST` | `/v1/dev/oauth-connections/{connection_id}/revoke` | Відкликати браузерне підключення |
 
 ## Не враховуються в MCP-квотах
 
@@ -61,6 +72,9 @@ REST-виклики Developer API не зараховуються в ліміт�
   <Accordion title="Діагностувати невдалий retrieval">
     Викличте `GET /v1/dev/mcp-requests` для списку останніх викликів, потім `GET /v1/dev/mcp-requests/{request_id}` для повного prompt і відповіді.
   </Accordion>
+  <Accordion title="Переглянути або відкликати браузерне підключення">
+    `GET /v1/dev/oauth-connections` — сесії ChatGPT і Claude web (один рядок на сім'ю refresh token). Відкликання: `POST /v1/dev/oauth-connections/{connection_id}/revoke` — те саме, що **Connected apps** у PAM.
+  </Accordion>
 </AccordionGroup>
 
 ## Поля mcp-config
@@ -79,6 +93,14 @@ REST-виклики Developer API не зараховуються в ліміт�
 | `mcp_server_name` | Id сервера (`pam_memory_mcp`) — довідково |
 | `key_prefix` | Ідентифікує активний ключ агента (`pam_mkey_<prefix>`) |
 | `claude_code_config_example` | Готовий блок для MCP-клієнта; placeholder, якщо `api_key` — `null` |
+| `oauth_registration_url` | DCR endpoint (`POST /v1/oauth/register`) |
+| `oauth_authorization_url` | OAuth authorize |
+| `oauth_token_url` | Token endpoint (`authorization_code`, `refresh_token`) |
+| `oauth_revocation_url` | Відкликання токена |
+| `oauth_protected_resource_metadata_url` | RFC 9728 metadata |
+| `oauth_authorization_server_metadata_url` | Metadata authorization server |
+| `oauth_client_id` | Опційний pre-issued client ID (браузер зазвичай лише MCP URL + DCR) |
+| `browser_mcp_setup_instructions` | Короткі підказки для UI Memory MCP |
 | `mcp_verified` | `true` після хоча б одного успішного `retrieve_memory` |
 
 Типовий flow: poll, поки `readiness.ready` — `true` → вставте `claude_code_config_example` → додайте ключ → запустіть `hello_world_prompt` → перевірте `mcp_verified`.
@@ -211,6 +233,39 @@ REST-виклики Developer API не зараховуються в ліміт�
 ```json
 {
   "revoked": true
+}
+```
+
+### `GET /v1/dev/oauth-connections`
+
+Один елемент списку на сім'ю refresh token. `expires_at` — термін refresh token, якщо є.
+
+```json
+{
+  "items": [
+    {
+      "id": 42,
+      "client_id": "pam_oauth_7f3a2b1c",
+      "client_name": "ChatGPT",
+      "scope": "memory:read",
+      "created_at": "2026-06-01T10:15:00+00:00",
+      "expires_at": "2026-07-01T10:15:00+00:00",
+      "last_used_at": "2026-06-03T08:22:11+00:00",
+      "revoked_at": null,
+      "status": "active"
+    }
+  ]
+}
+```
+
+`status`: `active`, `expired` або `revoked`.
+
+### `POST /v1/dev/oauth-connections/{connection_id}/revoke`
+
+```json
+{
+  "revoked": true,
+  "id": 42
 }
 ```
 

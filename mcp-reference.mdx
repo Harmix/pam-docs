@@ -18,15 +18,40 @@ POST https://api.pam.harmix.ai/v1/mcp/memory
 
 ## Authentication
 
-Include your agent API key on every request:
+Memory MCP accepts **either** static agent keys or OAuth Bearer tokens.
+
+### Desktop / script clients
 
 ```
 Authorization: pam_mkey_<prefix>.<secret>
 ```
 
-Some clients prepend `Bearer `. The server accepts both forms.
+Some clients prepend `Bearer `. The server accepts both forms for static keys.
 
-Generate keys on the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app — not via this endpoint.
+Generate keys on the [Memory MCP page](https://pam.harmix.ai/for-developers) — not via this endpoint.
+
+### Browser LLM clients (Claude web, ChatGPT)
+
+```
+Authorization: Bearer <opaque_oauth_access_token>
+```
+
+Browser clients obtain tokens through OAuth 2.1 Authorization Code + PKCE:
+
+| Step | Endpoint |
+|------|----------|
+| Discover protected resource | `GET /.well-known/oauth-protected-resource` |
+| Discover authorization server | `GET /.well-known/oauth-authorization-server` |
+| Register client (DCR) | `POST /v1/oauth/register` |
+| Authorize user | `GET /v1/oauth/authorize` |
+| Exchange code / refresh | `POST /v1/oauth/token` (`authorization_code`, `refresh_token`) |
+| Revoke token | `POST /v1/oauth/revoke` |
+
+Required scope: `memory:read`. Access tokens are opaque and short-lived (about 1 hour). Refresh tokens are opaque, rotate on each refresh, and last about 30 days. Reusing a spent refresh token revokes the whole connection family.
+
+Alternative discovery for some MCP clients: `GET /.well-known/oauth-protected-resource/v1/mcp/memory`.
+
+See [Client setup](/client-setup) for ChatGPT and Claude web connector steps.
 
 ## JSON-RPC methods
 
@@ -46,6 +71,7 @@ The server exposes one tool in v1:
 ```json
 {
   "name": "retrieve_memory",
+  "title": "Retrieve company memory",
   "description": "Retrieve relevant company memory for the current user's prompt. Use when the task may depend on company-specific context: people, projects, decisions, processes, priorities, history, customers, or internal terminology. Prefer calling this before making assumptions.",
   "inputSchema": {
     "type": "object",
@@ -54,6 +80,13 @@ The server exposes one tool in v1:
       "session_id": { "type": "string" }
     },
     "required": ["prompt"]
+  },
+  "annotations": {
+    "title": "Retrieve company memory",
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
   }
 }
 ```

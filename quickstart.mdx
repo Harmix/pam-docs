@@ -3,7 +3,7 @@ title: "Quickstart"
 description: "Connect Memory MCP to your agent in minutes: generate a key, paste config, and run retrieve_memory."
 ---
 
-Get from zero to a successful `retrieve_memory` call in four steps.
+Get from zero to a successful `retrieve_memory` call. Choose the path that matches your client.
 
 ## Prerequisites
 
@@ -11,11 +11,13 @@ Before you begin:
 
 - A PAM account with at least one connected memory source
 - Memory readiness in **Ready** state (see Memory MCP in the PAM app)
-- An MCP-compatible client (Cursor, Claude Code, or VS Code)
+- An MCP-compatible client
+
+## Desktop agents (Cursor, Claude Code, VS Code)
 
 <Steps>
   <Step title="Generate an agent API key">
-    Open [Memory MCP](https://pam.harmix.ai/for-developers) in the PAM app and click **Generate key**.
+    Open [Memory MCP](https://pam.harmix.ai/for-developers), choose **Desktop app or script**, and click **Generate key**.
 
     Copy the full key when shown — you cannot view the secret again after leaving the page. Keys use the format `pam_mkey_<prefix>.<secret>`.
   </Step>
@@ -61,6 +63,27 @@ Before you begin:
     ```
 
     Your agent should call `retrieve_memory` with your prompt. A successful call marks your key as **MCP verified** on the Memory MCP page.
+  </Step>
+</Steps>
+
+## Browser LLM connectors (ChatGPT, Claude web)
+
+<Steps>
+  <Step title="Copy your MCP server URL">
+    Open [Memory MCP](https://pam.harmix.ai/for-developers), choose **Web browser LLM**, and copy the **MCP server URL**.
+  </Step>
+  <Step title="Add a custom connector">
+    In ChatGPT or Claude web, add a custom MCP connector and paste the URL. No OAuth client ID is required — the connector registers via DCR automatically.
+
+    See [Client setup](/client-setup) for platform-specific steps (`chatgpt.com` and `claude.ai` tabs).
+  </Step>
+  <Step title="Approve access in PAM">
+    Sign in to PAM if prompted, then click **Allow** on the consent screen (e.g. *"chatgpt.com will be able to read your PAM memory."*).
+
+    **Cancel** returns you to the browser LLM without granting access.
+  </Step>
+  <Step title="Run a hello world prompt">
+    Ask your browser LLM the same hello world question as above and confirm the call appears in **Memory MCP → Request history**.
   </Step>
 </Steps>
 

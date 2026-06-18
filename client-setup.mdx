@@ -1,11 +1,69 @@
 ---
 title: "Client setup"
-description: "Configure Memory MCP in Cursor, Claude Code, and VS Code with copy-paste mcp.json examples."
+description: "Configure Memory MCP in Cursor, Claude Code, VS Code, Claude web, and ChatGPT."
 ---
 
-Add the Memory MCP server to your agent client using the endpoint and key from [Setup and keys](/setup-and-keys).
+Add the Memory MCP server using the endpoint from [Setup and keys](/setup-and-keys).
 
 **Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
+
+## Browser LLM connectors
+
+Use OAuth 2.1 + PKCE for Claude web and ChatGPT. **The MCP URL alone is enough** — the browser client discovers OAuth and registers itself via dynamic client registration (DCR) automatically.
+
+<Tabs>
+  <Tab title="ChatGPT (chatgpt.com)">
+    1. Open **Settings** → **Apps**.
+    2. Open **Advanced settings** and turn on **Developer mode** (accept the elevated-risk notice if shown).
+    3. Click **Create app** (from Advanced settings or the Enabled apps section).
+    4. **Name:** anything you like (e.g. PAM Memory).
+    5. Under **Connection**, choose **Server URL** and paste your MCP URL (from [Memory MCP](https://pam.harmix.ai/for-developers) or `GET /v1/dev/mcp-config`). Leave **Authentication** as **OAuth** — no client ID is required.
+    6. Check **I understand and want to continue**, then click **Create**.
+    7. Click **Sign in with** [your app name]. ChatGPT opens PAM in your browser to sign in if needed.
+    8. On the PAM approval screen, click **Allow**. You will be redirected back to ChatGPT.
+
+    <Tip>
+      ChatGPT uses per-connector redirect URLs such as `https://chatgpt.com/connector/oauth/{id}`. PAM accepts trusted `chatgpt.com` callback paths automatically.
+    </Tip>
+  </Tab>
+  <Tab title="Claude web (claude.ai)">
+    1. In Claude, open **Settings** → **Connectors** → **Add custom connector**.
+    2. **Name:** anything you like (e.g. PAM Memory).
+    3. **Remote MCP server URL:** paste your MCP URL.
+    4. Click **Add** — no OAuth client ID required (DCR registers the client automatically).
+    5. Claude opens PAM to sign in if needed.
+    6. On the PAM approval screen, click **Allow**.
+
+    <Note>
+      Claude web may show the connector as added before you approve in PAM. Access starts only after you click **Allow** on the PAM consent screen.
+    </Note>
+  </Tab>
+</Tabs>
+
+### OAuth discovery endpoints
+
+Browser clients resolve OAuth from:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /.well-known/oauth-protected-resource` | Protected resource metadata (RFC 9728) |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+| `POST /v1/oauth/register` | Dynamic client registration (DCR) |
+
+Scope: `memory:read` (read-only company memory retrieval).
+
+**Token refresh:** After the initial OAuth approval, ChatGPT and Claude can call `POST /v1/oauth/token` with `grant_type=refresh_token` to obtain a new access token without asking you to sign in again. Access tokens last about 1 hour; refresh tokens last about 30 days. PAM rotates the refresh token on every refresh (OAuth 2.1 best practice). If a refresh token is reused, the entire connection family is revoked and you must reconnect.
+
+### Manage browser connections
+
+View and revoke browser LLM connections from **Memory MCP → Connected apps** in the PAM app, or use the Developer API:
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/v1/dev/oauth-connections` | List active, expired, and revoked browser connections |
+| `POST` | `/v1/dev/oauth-connections/{id}/revoke` | Revoke one connection (entire refresh-token family) |
+
+## Desktop agents
 
 <Tabs>
   <Tab title="Cursor">
@@ -83,6 +141,8 @@ After connection, the MCP handshake returns:
 
 The response may include an `Mcp-Session-Id` header for session continuity.
 
+The `retrieve_memory` tool includes MCP annotations for connector directories: `readOnlyHint: true`, `destructiveHint: false`.
+
 ## Test your connection
 
 Run this hello world prompt in your agent:
@@ -94,5 +154,5 @@ What do we know about our current project priorities, and who is responsible for
 Check **Memory MCP → Request history** in the PAM app to confirm the call was recorded.
 
 <Tip>
-  Live config with your account-specific URL and key prefix is available at `GET /v1/dev/mcp-config` — see [Developer API overview](/developer-api-overview).
+  Live config with your account-specific URL, OAuth URLs, and key prefix is available at `GET /v1/dev/mcp-config` — see [Developer API overview](/developer-api-overview).
 </Tip>
