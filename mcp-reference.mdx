@@ -23,12 +23,12 @@ Memory MCP accepts **either** static agent keys or OAuth Bearer tokens.
 ### Desktop / script clients
 
 ```
-Authorization: pam_mkey_<prefix>.<secret>
+Authorization: pam_mkey_<key>
 ```
 
 Some clients prepend `Bearer `. The server accepts both forms for static keys.
 
-Generate keys on the [Memory MCP page](https://pam.harmix.ai/for-developers) — not via this endpoint.
+Generate keys on **[Setup](https://pam.harmix.ai/setup)** — not via this endpoint.
 
 ### Browser LLM clients (Claude web, ChatGPT)
 
@@ -137,13 +137,13 @@ Tool-level errors set `isError: true` and include `structuredContent.error_code`
   "content": [
     {
       "type": "text",
-      "text": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+      "text": "Rate limit exceeded. Please try again later."
     }
   ],
   "structuredContent": {
     "status": "error",
     "error_code": "quota_exceeded",
-    "error_message": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+    "error_message": "Rate limit exceeded. Please try again later."
   },
   "isError": true
 }
@@ -168,9 +168,9 @@ Tool-level errors set `isError: true` and include `structuredContent.error_code`
 
 ## Session ID and MCP headers
 
-The server may return an `Mcp-Session-Id` response header during MCP handshake. If you omit `session_id` in tool arguments, the server uses that MCP session ID instead.
+The server may return an `Mcp-Session-Id` response header during MCP handshake. `session_id` in tool arguments is **optional** — if omitted, the server uses that MCP session ID for the call.
 
-Passing an explicit `session_id` lets you group related calls in request history. The server also stores your last few prompts per `session_id` and may include the last 3 prior prompts in the **triage** step on the next call. This is a lightweight server-side hint — not full conversational context.
+An explicit `session_id` overrides the handshake ID (for example, one ID per agent thread). The server stores your last **5 prompts** per session in Redis (30-day TTL) and may include the last **3** prior prompts in the **triage** step on the next call when triage is enabled. This is a lightweight server-side hint — not full conversational context.
 
 ## Related
 

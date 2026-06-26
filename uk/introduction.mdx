@@ -3,7 +3,7 @@ title: "Вступ"
 description: "Підключіть зовнішніх агентів до PAM Memory через MCP-сервер лише для читання та отримуйте контекст компанії за запитом."
 ---
 
-Memory MCP дозволяє Claude Code, Cursor або вашому власному агенту отримувати контекст компанії з PAM — людей, проєкти, рішення, процеси, пріоритети, історію, клієнтів і внутрішню термінологію — без запису в історію чату та без списання кредитів чату за кожен виклик.
+Memory MCP дозволяє Claude Code, Cursor або вашому власному агенту отримувати контекст компанії з PAM — людей, проєкти, рішення, процеси, пріоритети, історію, клієнтів і внутрішню термінологію — без запису в історію PAM Chat.
 
 <Tip>
   Вперше з Memory MCP? Почніть із [Швидкого старту](/uk/quickstart): згенеруйте ключ, підключіть клієнт і виконайте перший виклик `retrieve_memory`.
@@ -20,7 +20,6 @@ Memory MCP дозволяє Claude Code, Cursor або вашому власно
 ## Чого Memory MCP не робить
 
 - Не записує в потоки PAM Chat і не змінює ваш workspace
-- Не списує кредити чату за кожен MCP-виклик (лише перевірка активної підписки)
 - Не надає доступ на запис до пам'яті чи інтеграцій
 
 <CardGroup cols={2}>
@@ -30,11 +29,11 @@ Memory MCP дозволяє Claude Code, Cursor або вашому власно
   <Card title="retrieve_memory" icon="brain" href="/uk/retrieve-memory">
     Довідник інструменту: параметри, відповіді та приклади.
   </Card>
+  <Card title="Налаштування клієнта" icon="plug" href="/uk/client-setup">
+    Покрокові інструкції для ChatGPT, Claude, Cursor, Perplexity та інших.
+  </Card>
   <Card title="Довідник MCP" icon="code" href="/uk/mcp-reference">
     Endpoint, методи JSON-RPC і деталі протоколу.
-  </Card>
-  <Card title="API для розробників" icon="server" href="/uk/developer-api-overview">
-    REST endpoints для ключів, readiness, використання та історії запитів.
   </Card>
 </CardGroup>
 
@@ -44,8 +43,8 @@ Memory MCP дозволяє Claude Code, Cursor або вашому власно
 
 1. Підключіть хоча б одне джерело пам'яті в PAM (Gmail, Drive, Notion, Slack або іншу підтримувану інтеграцію)
 2. Дочекайтесь завершення початкової синхронізації та обробки пам'яті
-3. Оберіть тип клієнта на **Memory MCP** — згенеруйте `pam_mkey` для desktop або скопіюйте MCP URL для браузерних LLM
+3. Оберіть тип клієнта на **[Setup](https://pam.harmix.ai/setup)** — згенеруйте `pam_mkey` для desktop або скопіюйте MCP URL для браузерних LLM
 
 <Note>
-  Налаштування клієнта, ротація ключів і приклади конфігурації доступні на [сторінці Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM.
+  Згенеруйте ключ і скопіюйте MCP URL на [Setup](https://pam.harmix.ai/setup). Оновлюйте ключі та керуйте браузерними підключеннями в [Access](https://pam.harmix.ai/access-management). Деталі — у [Налаштування та ключі](/uk/setup-and-keys) та [Налаштування клієнта](/uk/client-setup).
 </Note>

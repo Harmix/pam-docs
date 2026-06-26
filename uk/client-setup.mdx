@@ -1,74 +1,187 @@
 ---
 title: "Налаштування клієнта"
-description: "Налаштуйте Memory MCP у Cursor, Claude Code, VS Code, Claude web та ChatGPT."
+description: "Налаштуйте Memory MCP у Cursor, Claude Code, VS Code, скриптах, ChatGPT, Claude web та Perplexity."
+keywords: ["cursor", "claude", "chatgpt", "perplexity", "oauth", "mcp", "vscode"]
 ---
 
-Додайте MCP-сервер Memory MCP, використовуючи endpoint з розділу [Налаштування та ключі](/uk/setup-and-keys).
+<CardGroup cols={2}>
+  <Card title="Desktop-агенти" icon="laptop" href="#desktop-agents">
+    Cursor, Claude Code, скрипти, VS Code — ключ `pam_mkey`.
+  </Card>
+  <Card title="Браузерний LLM" icon="globe" href="#browser-llm-connectors">
+    ChatGPT, Claude web, Perplexity — OAuth через MCP URL.
+  </Card>
+</CardGroup>
 
-**Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
+<Note>
+  **Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
 
-## Браузерні LLM-конектори
+  Скопіюйте MCP URL акаунта на [Setup](https://pam.harmix.ai/setup). Згенеруйте або оновіть desktop-ключ на [Setup](https://pam.harmix.ai/setup) або [Access](https://pam.harmix.ai/access-management). Автентифікація: [Налаштування та ключі](/uk/setup-and-keys).
+</Note>
 
-Для Claude web і ChatGPT використовуйте OAuth 2.1 + PKCE. **Достатньо лише MCP URL** — браузерний клієнт знаходить OAuth і реєструється через dynamic client registration (DCR) автоматично.
+## Браузерні LLM-конектори {#browser-llm-connectors}
+
+Використовуйте OAuth 2.1 + PKCE. **Достатньо MCP URL** для клієнтів з OAuth discovery — реєстрація через DCR відбувається автоматично.
 
 <Tabs>
-  <Tab title="ChatGPT (chatgpt.com)">
-    1. Відкрийте **Settings** → **Apps**.
-    2. Відкрийте **Advanced settings** і увімкніть **Developer mode** (підтвердіть попередження про підвищений ризик, якщо з’явиться).
-    3. Натисніть **Create app** (у Advanced settings або в розділі Enabled apps).
-    4. **Name:** будь-яка назва (наприклад, PAM Memory).
-    5. У **Connection** оберіть **Server URL** і вставте MCP URL з [Memory MCP](https://pam.harmix.ai/for-developers) або `GET /v1/dev/mcp-config`. **Authentication** залиште **OAuth** — Client ID не потрібен.
-    6. Поставте галочку **I understand and want to continue**, потім натисніть **Create**.
-    7. Натисніть **Sign in with** [назва додатка]. ChatGPT відкриє PAM для входу, якщо потрібно.
-    8. На екрані підтвердження PAM натисніть **Allow**.
+  <Tab title="ChatGPT">
+    [Відкрити ChatGPT](https://chatgpt.com) і виконайте кроки:
+
+    <Steps>
+      <Step title="Відкрити Apps">
+        Відкрийте **Settings** → **Apps**.
+      </Step>
+      <Step title="Увімкнути Developer mode">
+        Відкрийте **Advanced settings** і увімкніть **Developer mode** (підтвердіть попередження про підвищений ризик, якщо з’явиться).
+      </Step>
+      <Step title="Create app">
+        Натисніть **Create app** (у Advanced settings або в розділі Enabled apps).
+      </Step>
+      <Step title="Назва">
+        **Name:** будь-яка назва (наприклад, PAM Memory).
+      </Step>
+      <Step title="MCP URL">
+        У **Connection** оберіть **Server URL** і вставте MCP URL з [Setup](https://pam.harmix.ai/setup). **Authentication** залиште **OAuth** — OAuth Client ID не потрібен, якщо discovery увімкнено.
+      </Step>
+      <Step title="Створити">
+        Поставте галочку **I understand and want to continue**, потім натисніть **Create**.
+      </Step>
+      <Step title="Увійти">
+        Натисніть **Sign in with** [назва вашого додатка]. ChatGPT відкриє PAM у браузері для входу, якщо потрібно.
+      </Step>
+      <Step title="Підтвердити">
+        На екрані підтвердження PAM натисніть **Approve** для доступу `memory:read`. Вас перенаправить назад у ChatGPT.
+      </Step>
+    </Steps>
 
     <Tip>
       ChatGPT використовує redirect URL на кшталт `https://chatgpt.com/connector/oauth/{id}`. PAM приймає довірені callback-шляхи `chatgpt.com` автоматично.
     </Tip>
   </Tab>
-  <Tab title="Claude web (claude.ai)">
-    1. У Claude відкрийте **Settings** → **Connectors** → **Add custom connector**.
-    2. **Name:** будь-яка назва.
-    3. **Remote MCP server URL:** вставте MCP URL.
-    4. Натисніть **Add** — OAuth Client ID не потрібен (DCR реєструє клієнта автоматично).
-    5. Claude відкриє PAM для входу, якщо потрібно.
-    6. На екрані PAM натисніть **Allow**.
+
+  <Tab title="Claude web">
+    [Відкрити Claude](https://claude.ai) і виконайте кроки:
+
+    <Steps>
+      <Step title="Додати конектор">
+        У Claude відкрийте **Settings** → **Connectors** → **Add custom connector**.
+      </Step>
+      <Step title="Назва">
+        **Name:** будь-яка назва (наприклад, PAM Memory).
+      </Step>
+      <Step title="MCP URL">
+        **Remote MCP server URL:** вставте MCP URL з [Setup](https://pam.harmix.ai/setup).
+      </Step>
+      <Step title="Add">
+        Натисніть **Add**. Claude відкриє PAM у браузері, якщо ви ще не увійшли.
+      </Step>
+      <Step title="Підтвердити">
+        На екрані підтвердження натисніть **Approve** для доступу `memory:read`.
+      </Step>
+    </Steps>
 
     <Note>
-      Claude web може показати конектор як доданий до підтвердження в PAM. Доступ починається лише після **Allow** на екрані згоди PAM.
+      Claude web може показати конектор як доданий до підтвердження в PAM. Доступ починається лише після **Approve** на екрані згоди PAM.
     </Note>
+  </Tab>
+
+  <Tab title="Perplexity">
+    [Відкрити Perplexity](https://www.perplexity.ai) і виконайте кроки:
+
+    <Steps>
+      <Step title="Customize">
+        У Perplexity відкрийте **Customize** у лівій бічній панелі.
+      </Step>
+      <Step title="Connectors">
+        Натисніть **Connectors**.
+      </Step>
+      <Step title="Custom connector">
+        Оберіть **Custom connector**.
+      </Step>
+      <Step title="Назва">
+        Введіть назву конектора (наприклад, PAM Memory).
+      </Step>
+      <Step title="Опис">
+        Вставте опис нижче в поле **Description**.
+      </Step>
+      <Step title="MCP URL">
+        Вставте MCP server URL з [Setup](https://pam.harmix.ai/setup) у поле **MCP URL**.
+      </Step>
+      <Step title="Зберегти">
+        Збережіть конектор, потім увійдіть у PAM і підтвердіть `memory:read`, коли з’явиться запит.
+      </Step>
+    </Steps>
+
+    ```text Опис конектора (вставте в Perplexity)
+    Read-only доступ до внутрішнього контексту вашої компанії — людей, проєктів, рішень і процесів — коли запитання потребують організаційної пам'яті.
+    ```
+  </Tab>
+
+  <Tab title="Інше">
+    <Steps>
+      <Step title="Налаштування">
+        Відкрийте налаштування браузерного LLM-конектора або MCP.
+      </Step>
+      <Step title="MCP URL">
+        Додайте MCP server URL з [Setup](https://pam.harmix.ai/setup) і оберіть **OAuth**, якщо доступно.
+      </Step>
+      <Step title="Підтвердити">
+        Завершіть вхід у PAM і підтвердіть `memory:read`, коли з’явиться запит.
+      </Step>
+    </Steps>
   </Tab>
 </Tabs>
 
-### OAuth discovery endpoints
+<AccordionGroup>
+  <Accordion title="Розширені деталі OAuth">
+    Браузерні клієнти знаходять OAuth через:
 
-Браузерні клієнти знаходять OAuth через:
+    | Endpoint | Призначення |
+    |----------|-------------|
+    | `GET /.well-known/oauth-protected-resource` | Protected resource metadata (RFC 9728) |
+    | `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+    | `POST /v1/oauth/register` | Dynamic client registration (DCR) |
 
-| Endpoint | Призначення |
-|----------|-------------|
-| `GET /.well-known/oauth-protected-resource` | Protected resource metadata (RFC 9728) |
-| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
-| `POST /v1/oauth/register` | Dynamic client registration (DCR) |
+    Scope: `memory:read` (read-only retrieval пам'яті компанії).
 
-Scope: `memory:read` (лише читання корпоративної пам'яті).
+    **Оновлення token:** Після першого OAuth-підтвердження сумісні клієнти викликають `POST /v1/oauth/token` з `grant_type=refresh_token`. Access token — близько 1 години; refresh token — близько 30 днів. PAM ротує refresh token при кожному оновленні. Повторне використання spent refresh token відкликає все підключення.
 
-**Оновлення токена:** після першого OAuth-підтвердження ChatGPT і Claude можуть викликати `POST /v1/oauth/token` з `grant_type=refresh_token` для нового access token без повторного входу. Access token — близько 1 години; refresh token — близько 30 днів. PAM ротує refresh token при кожному оновленні (OAuth 2.1). Повторне використання відкликаного refresh token відкликає всю сім'ю підключення — потрібно підключитися знову.
+    **Claude web — необов'язковий OAuth Client ID:** Для ChatGPT та інших клієнтів з OAuth discovery достатньо MCP URL. Якщо Claude запитує credentials у **Advanced settings**, розгорніть **Advanced settings**, вставте **OAuth Client ID** з [Setup](https://pam.harmix.ai/setup) (або `oauth_client_id` з `GET /v1/dev/mcp-config`), **OAuth Client Secret** залиште порожнім (public client + PKCE).
+  </Accordion>
 
-### Керування браузерними підключеннями
+  <Accordion title="Керування браузерними підключеннями">
+    Перегляд і відкликання — у [Access](https://pam.harmix.ai/access-management) або через Developer REST API:
 
-Перегляд і відкликання — у **Memory MCP → Connected apps** у PAM або через Developer API:
+    | Method | Path | Призначення |
+    |--------|------|-------------|
+    | `GET` | `/v1/dev/oauth-connections` | Список active, expired, revoked підключень |
+    | `POST` | `/v1/dev/oauth-connections/{id}/revoke` | Відкликати підключення (вся сім'я refresh token) |
+  </Accordion>
+</AccordionGroup>
 
-| Метод | Шлях | Призначення |
-|-------|------|-------------|
-| `GET` | `/v1/dev/oauth-connections` | Список активних, прострочених і відкликаних підключень |
-| `POST` | `/v1/dev/oauth-connections/{id}/revoke` | Відкликати підключення (вся сім'я refresh token) |
+## Desktop-агенти {#desktop-agents}
 
-## Desktop-агенти
+Desktop і скрипти використовують статичний `pam_mkey` у заголовку `Authorization`. Формат і ротація — у [Налаштування та ключі](/uk/setup-and-keys).
 
 <Tabs>
   <Tab title="Cursor">
-    1. **Cursor Settings** → **MCP**
-    2. Додайте до `mcp.json`:
+    <Steps>
+      <Step title="MCP settings">
+        Відкрийте Cursor і перейдіть у **Settings** → **MCP**.
+      </Step>
+      <Step title="Додати сервер">
+        Натисніть **Add new global MCP server** (або project MCP server).
+      </Step>
+      <Step title="Auth">
+        Вставте MCP server URL і заголовок `Authorization: pam_mkey_<key>`. Згенеруйте ключ на [Setup](https://pam.harmix.ai/setup), якщо його ще немає.
+      </Step>
+      <Step title="JSON (за потреби)">
+        Якщо клієнт просить повний config block, вставте JSON нижче.
+      </Step>
+      <Step title="Тест">
+        Запустіть [hello world prompt](#test-your-connection) у Cursor, щоб перевірити `retrieve_memory`.
+      </Step>
+    </Steps>
 
     ```json
     {
@@ -76,44 +189,125 @@ Scope: `memory:read` (лише читання корпоративної пам'
         "pam_memory": {
           "url": "https://api.pam.harmix.ai/v1/mcp/memory",
           "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
+            "Authorization": "pam_mkey_<key>"
           }
         }
       }
     }
     ```
-
-    3. Перезавантажте Cursor і переконайтеся, що `pam_memory` підключено
   </Tab>
+
   <Tab title="Claude Code">
+    <Steps>
+      <Step title="MCP config">
+        Відкрийте файл MCP-конфігу Claude Code (зазвичай `~/.claude/claude_desktop_config.json` або project MCP settings).
+      </Step>
+      <Step title="Вставити config">
+        Вставте JSON нижче в `mcpServers.pam_memory` або використайте CLI-команду.
+      </Step>
+      <Step title="Тест">
+        Запустіть [hello world prompt](#test-your-connection), щоб перевірити `retrieve_memory`.
+      </Step>
+    </Steps>
+
     ```bash
     claude mcp add --transport http pam_memory https://api.pam.harmix.ai/v1/mcp/memory \
-      --header "Authorization: pam_mkey_<prefix>.<secret>"
+      --header "Authorization: pam_mkey_<key>"
+    ```
+
+    ```json
+    {
+      "mcpServers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<key>"
+          }
+        }
+      }
+    }
     ```
   </Tab>
+
+  <Tab title="Скрипт / термінал">
+    <Steps>
+      <Step title="Ключ">
+        Згенеруйте статичний API ключ на [Setup](https://pam.harmix.ai/setup) або [Access](https://pam.harmix.ai/access-management), якщо його ще немає.
+      </Step>
+      <Step title="Authorization">
+        Надсилайте запити на MCP URL з `Authorization: pam_mkey_<key>` (без префікса Bearer).
+      </Step>
+      <Step title="tools/call">
+        Використовуйте JSON-RPC `tools/call` з `retrieve_memory` і вашим prompt.
+      </Step>
+    </Steps>
+
+    <Expandable title="Приклад tools/call payload">
+      Мінімальний JSON-RPC приклад для server-side агентів і скриптів:
+
+      ```json
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+          "name": "retrieve_memory",
+          "arguments": {
+            "prompt": "Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?"
+          }
+        }
+      }
+      ```
+    </Expandable>
+  </Tab>
+
   <Tab title="VS Code">
-    Оновіть `.vscode/mcp.json` аналогічно до прикладу Cursor.
+    Створіть або оновіть `.vscode/mcp.json` у workspace:
+
+    ```json
+    {
+      "servers": {
+        "pam_memory": {
+          "type": "http",
+          "url": "https://api.pam.harmix.ai/v1/mcp/memory",
+          "headers": {
+            "Authorization": "pam_mkey_<key>"
+          }
+        }
+      }
+    }
+    ```
   </Tab>
 </Tabs>
 
+## Перевірка підключення {#test-your-connection}
+
+Запустіть hello world prompt у агенті:
+
+```text
+Що ми знаємо про поточні пріоритети проєктів і хто відповідає за follow-up по кожному з них?
+```
+
+<Check>
+  Перевірте виклик у [Request Log](https://pam.harmix.ai/request-log). Успішний `retrieve_memory` позначає підключення як **MCP verified** на [Setup](https://pam.harmix.ai/setup).
+</Check>
+
 ## Метадані сервера
+
+Після підключення MCP handshake повертає:
 
 | Поле | Значення |
 |------|----------|
 | Server name | `pam_memory_mcp` |
 | Protocol version | `2024-11-05` |
 | Tools (v1) | лише `retrieve_memory` |
+| Resources / prompts | порожні списки у v1 |
 
-Інструмент `retrieve_memory` має анотації `readOnlyHint: true`, `destructiveHint: false`.
+Відповідь може містити заголовок `Mcp-Session-Id` для continuity сесії.
 
-## Перевірка підключення
-
-```text
-What do we know about our current project priorities, and who is responsible for follow-up on each?
-```
-
-Перевірте **Memory MCP → Request history** у PAM.
+Інструмент `retrieve_memory` має MCP annotations: `readOnlyHint: true`, `destructiveHint: false`.
 
 <Tip>
-  Актуальний конфіг з URL, OAuth endpoints і префіксом ключа — `GET /v1/dev/mcp-config`. Див. [Огляд API для розробників](/uk/developer-api-overview).
+  Актуальні значення MCP URL і config snippets — на [Setup](https://pam.harmix.ai/setup). Для автоматизації: `GET /v1/dev/mcp-config` (потрібен PAM access JWT).
 </Tip>

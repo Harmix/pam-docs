@@ -15,7 +15,7 @@ Memory MCP supports two authentication paths:
 ### Key format
 
 ```
-Authorization: pam_mkey_<prefix>.<secret>
+Authorization: pam_mkey_<key>
 ```
 
 Send this value in the `Authorization` header on **every** request to `/v1/mcp/memory`, including handshake methods (`initialize`, `tools/list`).
@@ -26,7 +26,7 @@ Send this value in the `Authorization` header on **every** request to `/v1/mcp/m
 
 ### Generate a key
 
-1. Open [Memory MCP](https://pam.harmix.ai/for-developers) in the PAM app
+1. Open **[Setup](https://pam.harmix.ai/setup)** in the PAM app
 2. Choose **Desktop app or script**
 3. Complete memory source connection and wait for readiness
 4. Click **Generate key** and copy the full secret immediately
@@ -37,7 +37,7 @@ You cannot view the secret again after leaving the page. The dashboard shows onl
 
 Each account has at most one active key at a time. Rotating a key:
 
-- Issues a new `pam_mkey_<prefix>.<secret>`
+- Issues a new `pam_mkey_<key>`
 - Revokes the previous key immediately
 - Requires updating your MCP client configuration
 
@@ -45,8 +45,8 @@ Each account has at most one active key at a time. Rotating a key:
 
 | Action | Where | API |
 |--------|-------|-----|
-| Rotate key | Memory MCP page | `POST /v1/dev/rotate-key` |
-| Revoke key | Memory MCP page | `POST /v1/dev/revoke-key` |
+| Rotate key | [Access](https://pam.harmix.ai/access-management) | `POST /v1/dev/rotate-key` |
+| Revoke key | [Access](https://pam.harmix.ai/access-management) | `POST /v1/dev/revoke-key` |
 
 Both dashboard actions and REST endpoints require your **PAM access JWT**, not a `pam_mkey`.
 
@@ -54,7 +54,7 @@ Both dashboard actions and REST endpoints require your **PAM access JWT**, not a
 
 Browser connectors do **not** use `pam_mkey`. They authenticate with OAuth access tokens after you approve `memory:read` on the PAM consent screen. Access tokens are short-lived (about 1 hour); compliant clients automatically renew them using a rotating refresh token (about 30 days) via `grant_type=refresh_token` at `POST /v1/oauth/token`.
 
-1. Add your **MCP server URL** in the browser LLM connector settings
+1. Add your **MCP server URL** in the browser LLM connector settings (copy from [Setup](https://pam.harmix.ai/setup))
 2. Complete OAuth login (PAM opens in your browser if needed)
 3. Click **Allow** on the consent screen — e.g. *"chatgpt.com will be able to read your PAM memory."*
 4. You are redirected back to the browser LLM
@@ -78,7 +78,7 @@ Blocked calls — quota exceeded, entitlement required, invalid arguments, memor
 - Store `pam_mkey` secrets in environment variables or secret managers
 - Rotate keys when team members leave or a key may have been shared
 - Browser OAuth tokens are opaque, scoped to `memory:read`, and use one-time refresh-token rotation (reuse revokes the whole connection)
-- Revoke a browser connection anytime from **Memory MCP → Connected apps**
+- Revoke a browser connection anytime from **[Access → Connected apps](https://pam.harmix.ai/access-management)**
 - Cancel on the PAM consent screen returns you to the requesting site without granting access
 
 <Info>

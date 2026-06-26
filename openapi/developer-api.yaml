@@ -271,53 +271,38 @@ components:
       required:
         - plan
         - status
-        - requests_this_week
-        - weekly_limit
-        - remaining_this_week
-        - requests_this_month
-        - monthly_limit
-        - remaining_this_month
+        - retrieve_requests_used
+        - max_retrieve_requests
+        - retrieve_requests_left
         - usage_percent
-        - week_reset_at
-        - month_reset_at
       properties:
         plan:
           type: string
         status:
           type: string
-          enum: [ok, near_limit, limited, entitlement_required]
-        requests_this_week:
+          enum: [ok, near_limit, limited, entitlement_required, unlimited]
+        retrieve_requests_used:
           type: integer
-        weekly_limit:
+        max_retrieve_requests:
           type: integer
-        remaining_this_week:
+          description: "-1 means unlimited"
+        retrieve_requests_left:
           type: integer
-        requests_this_month:
-          type: integer
-        monthly_limit:
-          type: integer
-        remaining_this_month:
-          type: integer
+          description: "-1 means unlimited"
         usage_percent:
           type: integer
-        week_reset_at:
+        reset_at:
           type: string
           format: date-time
-        month_reset_at:
-          type: string
-          format: date-time
+          nullable: true
       example:
-        plan: paid
+        plan: dev
         status: ok
-        requests_this_week: 28
-        weekly_limit: 300
-        remaining_this_week: 272
-        requests_this_month: 187
-        monthly_limit: 1000
-        remaining_this_month: 813
+        retrieve_requests_used: 187
+        max_retrieve_requests: 1000
+        retrieve_requests_left: 813
         usage_percent: 19
-        week_reset_at: "2026-06-02T00:00:00+00:00"
-        month_reset_at: "2026-06-01T00:00:00+00:00"
+        reset_at: "2026-07-01T00:00:00+00:00"
     DeveloperMcpConfigResponse:
       type: object
       required:
@@ -342,7 +327,7 @@ components:
         key_prefix:
           type: string
           nullable: true
-          description: Prefix of the active agent key (pam_mkey_<prefix>.<secret>).
+          description: Prefix of the active agent key (pam_mkey_<key>).
         mcp_verified:
           type: boolean
           description: True after at least one successful retrieve_memory call with the active key.
@@ -411,7 +396,7 @@ components:
               type: http
               url: https://api.pam.harmix.ai/v1/mcp/memory
               headers:
-                Authorization: pam_mkey_<prefix>.<secret>
+                Authorization: pam_mkey_<key>
         readiness:
           ready: true
           state: ready_rich
@@ -423,17 +408,13 @@ components:
           has_context_markdown: true
           has_tree_index: true
         quota:
-          plan: paid
+          plan: dev
           status: ok
-          requests_this_week: 28
-          weekly_limit: 300
-          remaining_this_week: 272
-          requests_this_month: 187
-          monthly_limit: 1000
-          remaining_this_month: 813
+          retrieve_requests_used: 187
+          max_retrieve_requests: 1000
+          retrieve_requests_left: 813
           usage_percent: 19
-          week_reset_at: "2026-06-02T00:00:00+00:00"
-          month_reset_at: "2026-06-01T00:00:00+00:00"
+          reset_at: "2026-07-01T00:00:00+00:00"
         developer_api_notice: You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key, oauth-connections).
         oauth_registration_url: https://api.pam.harmix.ai/v1/oauth/register
         oauth_authorization_url: https://api.pam.harmix.ai/v1/oauth/authorize
@@ -521,7 +502,7 @@ components:
       properties:
         api_key:
           type: string
-          example: pam_mkey_<prefix>.<secret>
+          example: pam_mkey_<key>
         key_prefix:
           type: string
           nullable: true
@@ -529,7 +510,7 @@ components:
           type: string
           format: date-time
       example:
-        api_key: pam_mkey_a3f8c21b.Kx7vP2mNqR8sT4wY9zAbCdEfGh
+        api_key: pam_mkey_Kx7vP2mNqR8sT4wY9zAbCdEfGhIjKlMnOp
         key_prefix: pam_mkey_a3f8c21b
         rotated_at: "2026-05-29T14:22:08.451234+00:00"
     MemoryMcpRequestListItem:

@@ -17,9 +17,9 @@ Before you begin:
 
 <Steps>
   <Step title="Generate an agent API key">
-    Open [Memory MCP](https://pam.harmix.ai/for-developers), choose **Desktop app or script**, and click **Generate key**.
+    Open **[Setup](https://pam.harmix.ai/setup)**, choose **Desktop app or script**, and click **Generate key**.
 
-    Copy the full key when shown — you cannot view the secret again after leaving the page. Keys use the format `pam_mkey_<prefix>.<secret>`.
+    Copy the full key when shown — you cannot view the secret again after leaving the page. Keys use the format `pam_mkey_<key>`.
   </Step>
   <Step title="Add the MCP server to your client">
     Paste this configuration into your MCP client settings. Replace the placeholder with your full key.
@@ -31,14 +31,14 @@ Before you begin:
           "type": "http",
           "url": "https://api.pam.harmix.ai/v1/mcp/memory",
           "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
+            "Authorization": "pam_mkey_<key>"
           }
         }
       }
     }
     ```
 
-    See [Client setup](/client-setup) for Cursor, Claude Code, and VS Code-specific instructions.
+    See [Client setup → Desktop agents → Cursor](/client-setup#desktop-agents) (or Claude Code / VS Code tabs) for platform-specific steps.
   </Step>
   <Step title="Add agent instructions">
     Add this snippet to your agent system prompt so it knows when to retrieve memory:
@@ -62,7 +62,7 @@ Before you begin:
     What do we know about our current project priorities, and who is responsible for follow-up on each?
     ```
 
-    Your agent should call `retrieve_memory` with your prompt. A successful call marks your key as **MCP verified** on the Memory MCP page.
+    Your agent should call `retrieve_memory` with your prompt. A successful call marks your key as **MCP verified** on [Setup](https://pam.harmix.ai/setup).
   </Step>
 </Steps>
 
@@ -70,20 +70,20 @@ Before you begin:
 
 <Steps>
   <Step title="Copy your MCP server URL">
-    Open [Memory MCP](https://pam.harmix.ai/for-developers), choose **Web browser LLM**, and copy the **MCP server URL**.
+    Open **[Setup](https://pam.harmix.ai/setup)**, choose **Web browser LLM**, and copy the **MCP server URL**.
   </Step>
   <Step title="Add a custom connector">
     In ChatGPT or Claude web, add a custom MCP connector and paste the URL. No OAuth client ID is required — the connector registers via DCR automatically.
 
-    See [Client setup](/client-setup) for platform-specific steps (`chatgpt.com` and `claude.ai` tabs).
+    Follow [Client setup → Browser LLM → ChatGPT](/client-setup#browser-llm-connectors), [Claude web](/client-setup#browser-llm-connectors), or [Perplexity](/client-setup#browser-llm-connectors). No OAuth client ID is required when discovery is enabled.
   </Step>
   <Step title="Approve access in PAM">
-    Sign in to PAM if prompted, then click **Allow** on the consent screen (e.g. *"chatgpt.com will be able to read your PAM memory."*).
+    Sign in to PAM if prompted, then click **Approve** on the consent screen (e.g. *"chatgpt.com will be able to read your PAM memory."*).
 
     **Cancel** returns you to the browser LLM without granting access.
   </Step>
   <Step title="Run a hello world prompt">
-    Ask your browser LLM the same hello world question as above and confirm the call appears in **Memory MCP → Request history**.
+    Ask your browser LLM the same hello world question as above and confirm the call appears in **[Request Log](https://pam.harmix.ai/request-log)**.
   </Step>
 </Steps>
 

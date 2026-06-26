@@ -15,9 +15,9 @@ description: "Підключіть Memory MCP до агента за кільк�
 
 <Steps>
   <Step title="Згенеруйте API ключ агента">
-    Відкрийте [Memory MCP](https://pam.harmix.ai/for-developers), оберіть **Desktop app or script** і натисніть **Generate key**.
+    Відкрийте **[Setup](https://pam.harmix.ai/setup)**, оберіть **Desktop app or script** і натисніть **Generate key**.
 
-    Скопіюйте повний ключ одразу — після виходу зі сторінки секрет більше не відображається. Формат ключа: `pam_mkey_<prefix>.<secret>`.
+    Скопіюйте повний ключ одразу — після виходу зі сторінки секрет більше не відображається. Формат ключа: `pam_mkey_<key>`.
   </Step>
   <Step title="Додайте MCP-сервер у клієнт">
     Вставте цю конфігурацію в налаштування MCP-клієнта. Замініть placeholder на ваш повний ключ.
@@ -29,14 +29,14 @@ description: "Підключіть Memory MCP до агента за кільк�
           "type": "http",
           "url": "https://api.pam.harmix.ai/v1/mcp/memory",
           "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
+            "Authorization": "pam_mkey_<key>"
           }
         }
       }
     }
     ```
 
-    Детальні інструкції для Cursor, Claude Code і VS Code — у розділі [Налаштування клієнта](/uk/client-setup).
+    Деталі — [Налаштування клієнта → Desktop-агенти](/uk/client-setup#desktop-agents) (вкладки Cursor, Claude Code, VS Code).
   </Step>
   <Step title="Додайте інструкції для агента">
     Додайте цей фрагмент у системний промпт агента, щоб він знав, коли потрібно отримувати пам'ять:
@@ -68,18 +68,18 @@ description: "Підключіть Memory MCP до агента за кільк�
 
 <Steps>
   <Step title="Скопіюйте MCP URL">
-    У Memory MCP оберіть **Web browser LLM** і скопіюйте **MCP server URL**.
+    На **[Setup](https://pam.harmix.ai/setup)** оберіть **Web browser LLM** і скопіюйте **MCP server URL**.
   </Step>
   <Step title="Додайте custom connector">
     У ChatGPT або Claude web додайте MCP-конектор і вставте URL. OAuth Client ID не потрібен — конектор реєструється через DCR автоматично.
 
-    Деталі — у [Налаштуванні клієнта](/uk/client-setup) (вкладки `chatgpt.com` та `claude.ai`).
+    Дотримуйтесь [Налаштування клієнта → Браузерні LLM](/uk/client-setup#browser-llm-connectors) (ChatGPT, Claude web, Perplexity). OAuth Client ID не потрібен, якщо discovery увімкнено.
   </Step>
   <Step title="Підтвердіть доступ у PAM">
-    Увійдіть у PAM і натисніть **Allow** (наприклад, *«chatgpt.com зможе читати вашу PAM memory»*). **Cancel** повертає вас без доступу.
+    Увійдіть у PAM і натисніть **Approve** (наприклад, *«chatgpt.com зможе читати вашу PAM memory»*). **Cancel** повертає вас без доступу.
   </Step>
   <Step title="Запустіть hello world prompt">
-    Поставте те саме тестове запитання й перевірте **Request history** у Memory MCP.
+    Поставте те саме тестове запитання й перевірте **[Request Log](https://pam.harmix.ai/request-log)**.
   </Step>
 </Steps>
 

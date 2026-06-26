@@ -1,57 +1,60 @@
 ---
 title: "Quotas and limits"
-description: "Memory MCP rate limits, plan tiers, entitlement requirements, and what counts toward quotas."
+description: "Memory MCP rate limits, paid plan entitlements, and what counts toward retrieve quotas."
 ---
 
-Memory MCP enforces per-account limits on `retrieve_memory` calls. Limits depend on your subscription plan.
-
-MCP calls do **not** consume chat credits, but an active subscription with credits remaining is required.
+Memory MCP enforces per-account limits on `retrieve_memory` calls. Access requires an active **paid plan** (Memory MCP subscription).
 
 ## What is counted
 
-**Counted:** `tools/call` with `name: retrieve_memory` on `POST /v1/mcp/memory` — including blocked calls after authentication (quota exceeded, entitlement blocked, etc.).
+**Toward your monthly retrieve limit:** successful `tools/call` requests with `name: retrieve_memory` on `POST /v1/mcp/memory` — only when retrieval completes successfully.
 
-**Not counted:**
+**Toward the hourly burst limit:** every authenticated `retrieve_memory` attempt after entitlement checks (including blocked calls).
+
+**Logged but not counted toward monthly quota:** blocked calls after authentication (quota exceeded, entitlement blocked, invalid arguments, etc.) appear in **[Request Log](https://pam.harmix.ai/request-log)** but do not decrement your monthly retrieve allowance.
+
+**Not counted at all:**
 
 - `initialize`, `initialized`, `tools/list`, `resources/list`, `prompts/list`
 - Developer REST API calls (`/v1/dev/*`)
 
-## Plan limits
+## Paid plan limits
 
-| Plan | Weekly limit | Monthly limit |
-|------|-------------|---------------|
-| Trial | 25 | 100 |
-| Paid | 300 | 1,000 |
-| Custom | 3,000 | 10,000 |
+Memory MCP is offered on a single **paid plan**. Typical limits:
 
-All plans also enforce an hourly limit of **100** requests.
+| Limit | Value |
+|-------|-------|
+| Successful `retrieve_memory` calls | **1,000** per billing period |
+| Hourly burst | **100** calls per UTC hour |
+| Connected OAuth memory sources | **1** |
+
+Each successful retrieval uses one retrieve request from your monthly allowance. Handshake and discovery methods are free.
 
 ## Reset schedule
 
 | Window | Resets at |
 |--------|-----------|
-| Hourly | Start of each UTC hour |
-| Weekly | Start of each UTC week |
-| Monthly | Start of each UTC month |
+| Hourly burst | Start of each UTC hour |
+| Monthly retrieve allowance | ~32 days after your last subscription payment (`reset_at` in the Usage UI and `GET /v1/dev/mcp-config`) |
 
 ## Entitlement gate
 
-`entitlement_required` is returned when your account has no remaining credits. Upgrade or renew your PAM subscription to continue.
+`entitlement_required` is returned when Memory MCP is not available on your account — for example, no active paid plan, Memory MCP not enabled, subscription inactive, or no chat credits remaining on your PAM account.
 
-Memory MCP uses credits as a subscription gate only — individual retrieval calls do not decrement chat credits.
+Upgrade or renew on **[Setup](https://pam.harmix.ai/setup)** to continue.
 
 ## Near-limit warnings
 
-The **Usage** tab on the Memory MCP page shows quota status:
+The **[Usage](https://pam.harmix.ai/usage)** page in the PAM app shows quota status:
 
 | Status | Meaning |
 |--------|---------|
 | `ok` | Within limits |
-| `near_limit` | Above 80% of monthly limit |
-| `limited` | Monthly limit reached |
-| `entitlement_required` | No active subscription |
+| `near_limit` | Above 80% of monthly retrieve limit |
+| `limited` | Monthly retrieve limit reached |
+| `entitlement_required` | Memory MCP not available on your account |
 
-Check live quota via `GET /v1/dev/mcp-config` — see [Developer API overview](/developer-api-overview).
+Check live quota on **Usage**, or via `GET /v1/dev/mcp-config` (see [Setup and keys](/setup-and-keys)).
 
 ## Example: quota_exceeded response
 
@@ -62,13 +65,13 @@ Tool-level error shape (HTTP 200 with `isError: true`):
   "content": [
     {
       "type": "text",
-      "text": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+      "text": "Rate limit exceeded. Please try again later."
     }
   ],
   "structuredContent": {
     "status": "error",
     "error_code": "quota_exceeded",
-    "error_message": "You've reached your weekly Memory MCP limit. Try again after Monday 00:00 UTC or reduce how often your agent calls retrieve_memory."
+    "error_message": "Rate limit exceeded. Please try again later."
   },
   "isError": true
 }
@@ -76,7 +79,7 @@ Tool-level error shape (HTTP 200 with `isError: true`):
 
 ## Request history
 
-Each `retrieve_memory` attempt stores the full prompt and full tool response for review on **Memory MCP → Request history** and via `GET /v1/dev/mcp-requests`.
+Each `retrieve_memory` attempt stores the full prompt and full tool response for review on **[Request Log](https://pam.harmix.ai/request-log)** and via `GET /v1/dev/mcp-requests`.
 
 <Warning>
   `quota_exceeded` applies only to `retrieve_memory` via `tools/call`, not to handshake methods or Developer REST calls.

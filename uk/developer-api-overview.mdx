@@ -3,7 +3,7 @@ title: "Огляд API для розробників"
 description: "REST endpoints для керування ключами Memory MCP, readiness, аналітики використання та історії запитів."
 ---
 
-Developer API підтримує [сторінку Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM. Використовуйте його для програмного керування Memory MCP, перевірки readiness та перегляду історії retrieval.
+Developer API підтримує сторінки Memory MCP у застосунку PAM ([Setup](https://pam.harmix.ai/setup), [Access](https://pam.harmix.ai/access-management), [Usage](https://pam.harmix.ai/usage), [Request Log](https://pam.harmix.ai/request-log)). Використовуйте його для програмного керування Memory MCP, перевірки readiness та перегляду історії retrieval.
 
 <Note>
   Ці endpoints — **не** протокол Memory MCP. Для retrieval агентом використовуйте `POST /v1/mcp/memory` — див. [Довідник MCP](/uk/mcp-reference).
@@ -21,7 +21,7 @@ Authorization: Bearer <access_token>
 
 | Тип auth | Для чого | Формат заголовка |
 |----------|----------|------------------|
-| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) — desktop/скрипт | `Authorization: pam_mkey_<prefix>.<secret>` |
+| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) — desktop/скрипт | `Authorization: pam_mkey_<key>` |
 | OAuth Bearer | Memory MCP (`/v1/mcp/memory`) — браузерні LLM | `Authorization: Bearer <opaque_access_token>` |
 | Access JWT | Developer API (`/v1/dev/*`) | `Authorization: Bearer <token>` |
 
@@ -145,7 +145,7 @@ REST-виклики Developer API не зараховуються в ліміт�
         "type": "http",
         "url": "https://api.pam.harmix.ai/v1/mcp/memory",
         "headers": {
-          "Authorization": "pam_mkey_<prefix>.<secret>"
+          "Authorization": "pam_mkey_<key>"
         }
       }
     }
@@ -174,7 +174,7 @@ REST-виклики Developer API не зараховуються в ліміт�
     "week_reset_at": "2026-06-02T00:00:00+00:00",
     "month_reset_at": "2026-06-01T00:00:00+00:00"
   },
-  "developer_api_notice": "You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key)."
+  "developer_api_notice": "You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key, oauth-connections)."
 }
 ```
 
@@ -222,7 +222,7 @@ REST-виклики Developer API не зараховуються в ліміт�
 
 ```json
 {
-  "api_key": "pam_mkey_a3f8c21b.Kx7vP2mNqR8sT4wY9zAbCdEfGh",
+  "api_key": "pam_mkey_Kx7vP2mNqR8sT4wY9zAbCdEfGhIjKlMnOp",
   "key_prefix": "pam_mkey_a3f8c21b",
   "rotated_at": "2026-05-29T14:22:08.451234+00:00"
 }

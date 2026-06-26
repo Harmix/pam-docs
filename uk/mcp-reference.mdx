@@ -23,12 +23,12 @@ Memory MCP приймає **або** статичні ключі агента, *
 ### Desktop / скрипт
 
 ```
-Authorization: pam_mkey_<prefix>.<secret>
+Authorization: pam_mkey_<key>
 ```
 
 Деякі клієнти додають префікс `Bearer `. Сервер приймає обидва формати для статичних ключів.
 
-Генеруйте ключі на [сторінці Memory MCP](https://pam.harmix.ai/for-developers) — не через цей endpoint.
+Генеруйте ключі на **[Setup](https://pam.harmix.ai/setup)** — не через цей endpoint.
 
 ### Браузерні LLM (Claude web, ChatGPT)
 
@@ -160,9 +160,9 @@ Scope: `memory:read`. Access token — близько 1 години; refresh to
 
 ## Session ID та MCP-заголовки
 
-Сервер може повертати заголовок `Mcp-Session-Id` під час MCP handshake. Якщо `session_id` не передано в аргументах інструменту, використовується цей MCP session ID.
+Сервер може повертати заголовок `Mcp-Session-Id` під час MCP handshake. `session_id` в аргументах інструменту **необов'язковий** — якщо не передано, сервер використовує цей MCP session ID для виклику.
 
-Явний `session_id` дозволяє групувати пов'язані виклики в історії запитів. Сервер також зберігає останні prompt для цього `session_id` і може додати останні 3 prompt лише на етап **triage** при наступному виклику. Це легка server-side підказка, а не повний контекст розмови.
+Явний `session_id` перевизначає handshake ID (наприклад, один ID на thread агента). Сервер зберігає останні **5 prompt** на session у Redis (TTL 30 днів) і може додати останні **3** prompt лише на етап **triage** при наступному виклику, коли triage увімкнено. Це легка server-side підказка, а не повний контекст розмови.
 
 ## Пов'язані розділи
 

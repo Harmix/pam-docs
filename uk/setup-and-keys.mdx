@@ -15,7 +15,7 @@ Memory MCP підтримує два шляхи автентифікації:
 ### Формат ключа
 
 ```
-Authorization: pam_mkey_<prefix>.<secret>
+Authorization: pam_mkey_<key>
 ```
 
 Передавайте це значення в заголовку `Authorization` у **кожному** запиті на `/v1/mcp/memory`, включно з handshake-методами (`initialize`, `tools/list`).
@@ -26,7 +26,7 @@ Authorization: pam_mkey_<prefix>.<secret>
 
 ### Генерація ключа
 
-1. Відкрийте [Memory MCP](https://pam.harmix.ai/for-developers) у застосунку PAM
+1. Відкрийте **[Setup](https://pam.harmix.ai/setup)** у застосунку PAM
 2. Оберіть **Desktop app or script**
 3. Підключіть джерела пам'яті та дочекайтесь readiness
 4. Натисніть **Generate key** і одразу скопіюйте повний секрет
@@ -37,7 +37,7 @@ Authorization: pam_mkey_<prefix>.<secret>
 
 На акаунт може бути лише один активний ключ. Під час ротації:
 
-- Видається новий `pam_mkey_<prefix>.<secret>`
+- Видається новий `pam_mkey_<key>`
 - Попередній ключ негайно відкликається
 - Потрібно оновити конфігурацію MCP-клієнта
 
@@ -45,8 +45,8 @@ Authorization: pam_mkey_<prefix>.<secret>
 
 | Дія | Де | API |
 |-----|-----|-----|
-| Оновити ключ | Сторінка Memory MCP | `POST /v1/dev/rotate-key` |
-| Відкликати ключ | Сторінка Memory MCP | `POST /v1/dev/revoke-key` |
+| Оновити ключ | [Access](https://pam.harmix.ai/access-management) | `POST /v1/dev/rotate-key` |
+| Відкликати ключ | [Access](https://pam.harmix.ai/access-management) | `POST /v1/dev/revoke-key` |
 
 І дії в dashboard, і REST endpoints потребують **PAM access JWT**, а не `pam_mkey`.
 
@@ -54,7 +54,7 @@ Authorization: pam_mkey_<prefix>.<secret>
 
 Браузерні конектори **не** використовують `pam_mkey`. Вони автентифікуються OAuth access token після підтвердження `memory:read` на екрані згоди PAM. Access token короткоживучий (близько 1 години); сумісні клієнти автоматично оновлюють його через rotating refresh token (близько 30 днів) з `grant_type=refresh_token` на `POST /v1/oauth/token`.
 
-1. Додайте **MCP server URL** у налаштуваннях браузерного LLM-конектора
+1. Додайте **MCP server URL** у налаштуваннях браузерного LLM-конектора (скопіюйте з [Setup](https://pam.harmix.ai/setup))
 2. Пройдіть OAuth-вхід (PAM відкриється в браузері, якщо потрібно)
 3. Натисніть **Allow** на екрані згоди — наприклад, *«chatgpt.com зможе читати вашу PAM memory»*
 4. Вас перенаправить назад у браузерний LLM
@@ -78,7 +78,7 @@ Authorization: pam_mkey_<prefix>.<secret>
 - Зберігайте `pam_mkey` у змінних середовища або secret manager
 - Оновлюйте ключі, коли співробітник залишає команду або ключ міг бути поширений
 - OAuth-токени непрозорі, обмежені scope `memory:read`, з одноразовою ротацією refresh token (повторне використання відкликає все підключення)
-- Відкликайте браузерне підключення в **Memory MCP → Connected apps**
+- Відкликайте браузерне підключення в **[Access → Connected apps](https://pam.harmix.ai/access-management)**
 - **Cancel** на екрані згоди PAM повертає на сайт запитувача без доступу
 
 <Info>
