@@ -1,57 +1,60 @@
 ---
 title: "Квоти та ліміти"
-description: "Ліміти Memory MCP, тарифні плани, вимоги до підписки та що враховується в квотах."
+description: "Ліміти Memory MCP, умови paid plan і що враховується в квотах retrieve."
 ---
 
-Memory MCP застосовує ліміти на виклики `retrieve_memory` для кожного акаунта. Ліміти залежать від тарифного плану.
-
-MCP-виклики **не** списують кредити чату, але потрібна активна підписка із залишком кредитів.
+Memory MCP застосовує ліміти на виклики `retrieve_memory` для кожного акаунта. Доступ потребує активного **paid plan** (підписка Memory MCP).
 
 ## Що враховується
 
-**Враховуються:** `tools/call` з `name: retrieve_memory` на `POST /v1/mcp/memory` — включно з заблокованими після автентифікації (quota exceeded, entitlement blocked тощо).
+**У місячний ліміт retrieve:** успішні `tools/call` з `name: retrieve_memory` на `POST /v1/mcp/memory` — лише коли retrieval завершується успішно.
 
-**Не враховуються:**
+**У погодинний burst-ліміт:** кожна автентифікована спроба `retrieve_memory` після перевірки entitlement (включно із заблокованими викликами).
+
+**Логуються, але не зменшують місячну квоту:** заблоковані виклики після автентифікації (quota exceeded, entitlement blocked, invalid arguments тощо) з’являються в **[Request Log](https://pam.harmix.ai/request-log)**, але не зменшують місячний retrieve allowance.
+
+**Не враховуються взагалі:**
 
 - `initialize`, `initialized`, `tools/list`, `resources/list`, `prompts/list`
 - REST-виклики Developer API (`/v1/dev/*`)
 
-## Ліміти за планами
+## Ліміти paid plan
 
-| План | Тижневий ліміт | Місячний ліміт |
-|------|----------------|----------------|
-| Trial | 25 | 100 |
-| Paid | 300 | 1 000 |
-| Custom | 3 000 | 10 000 |
+Memory MCP пропонується в одному **paid plan**. Типові ліміти:
 
-Усі плани також мають погодинний ліміт **100** запитів.
+| Ліміт | Значення |
+|-------|----------|
+| Успішні виклики `retrieve_memory` | **1 000** за billing period |
+| Погодинний burst | **100** викликів на UTC годину |
+| Підключені OAuth memory sources | **1** |
+
+Кожен успішний retrieval використовує один retrieve request із місячного allowance. Handshake і discovery методи безкоштовні.
 
 ## Розклад скидання
 
 | Вікно | Скидання |
 |-------|----------|
-| Погодинне | Початок кожної UTC години |
-| Тижневе | Початок кожного UTC-тижня |
-| Місячне | Початок кожного UTC-місяця |
+| Погодинний burst | Початок кожної UTC години |
+| Місячний retrieve allowance | ~32 дні після останнього платежу за підписку (`reset_at` у Usage UI та `GET /v1/dev/mcp-config`) |
 
 ## Перевірка підписки
 
-`entitlement_required` повертається, коли на акаунті не залишилось кредитів. Оновіть або поновіть підписку PAM, щоб продовжити.
+`entitlement_required` повертається, коли Memory MCP недоступний на акаунті — наприклад, немає активного paid plan, Memory MCP не увімкнено, підписка неактивна або на PAM-акаунті не залишилось chat credits.
 
-Memory MCP використовує кредити лише як перевірку активної підписки — окремі retrieval-виклики не зменшують баланс кредитів чату.
+Оновіть або поновіть підписку на **[Setup](https://pam.harmix.ai/setup)**, щоб продовжити.
 
 ## Попередження про наближення до ліміту
 
-Вкладка **Usage** на сторінці Memory MCP показує статус квоти:
+Сторінка **[Usage](https://pam.harmix.ai/usage)** у застосунку PAM показує статус квоти:
 
 | Статус | Значення |
 |--------|----------|
 | `ok` | У межах ліміту |
-| `near_limit` | Понад 80% місячного ліміту |
-| `limited` | Місячний ліміт досягнуто |
-| `entitlement_required` | Немає активної підписки |
+| `near_limit` | Понад 80% місячного retrieve limit |
+| `limited` | Місячний retrieve limit досягнуто |
+| `entitlement_required` | Memory MCP недоступний на акаунті |
 
-Актуальну квоту перевірте через `GET /v1/dev/mcp-config` — див. [Огляд API для розробників](/uk/developer-api-overview).
+Актуальну квоту перевірте на **Usage** або через `GET /v1/dev/mcp-config` (див. [Налаштування та ключі](/uk/setup-and-keys)).
 
 ## Приклад: відповідь quota_exceeded
 
@@ -62,13 +65,13 @@ Memory MCP використовує кредити лише як перевір�
   "content": [
     {
       "type": "text",
-      "text": "Ви досягли тижневого ліміту Memory MCP. Спробуйте знову після понеділка 00:00 UTC або зменшіть частоту викликів retrieve_memory."
+      "text": "Rate limit exceeded. Please try again later."
     }
   ],
   "structuredContent": {
     "status": "error",
     "error_code": "quota_exceeded",
-    "error_message": "Ви досягли тижневого ліміту Memory MCP. Спробуйте знову після понеділка 00:00 UTC або зменшіть частоту викликів retrieve_memory."
+    "error_message": "Rate limit exceeded. Please try again later."
   },
   "isError": true
 }
@@ -76,7 +79,7 @@ Memory MCP використовує кредити лише як перевір�
 
 ## Історія запитів
 
-Кожна спроба `retrieve_memory` зберігає повний prompt і відповідь для перегляду в **Memory MCP → Request history** та через `GET /v1/dev/mcp-requests`.
+Кожна спроба `retrieve_memory` зберігає повний prompt і відповідь для перегляду в **[Request Log](https://pam.harmix.ai/request-log)** та через `GET /v1/dev/mcp-requests`.
 
 <Warning>
   `quota_exceeded` стосується лише `retrieve_memory` через `tools/call`, а не handshake-методів чи REST Developer API.

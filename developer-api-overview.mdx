@@ -3,7 +3,7 @@ title: "Developer API overview"
 description: "REST endpoints for Memory MCP key management, readiness, usage analytics, and request history."
 ---
 
-The Developer API supports the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app. Use it to programmatically manage Memory MCP setup, inspect readiness, and review retrieval history.
+The Developer API supports the Memory MCP pages in the PAM app ([Setup](https://pam.harmix.ai/setup), [Access](https://pam.harmix.ai/access-management), [Usage](https://pam.harmix.ai/usage), [Request Log](https://pam.harmix.ai/request-log)). Use it to programmatically manage Memory MCP setup, inspect readiness, and review retrieval history.
 
 <Note>
   These endpoints are **not** the Memory MCP protocol. For agent retrieval, use `POST /v1/mcp/memory` — see [MCP reference](/mcp-reference).
@@ -24,7 +24,7 @@ This is different from Memory MCP authentication, which supports **either**:
 
 | Auth type | Used for | Header format |
 |-----------|----------|---------------|
-| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) — desktop/script clients | `Authorization: pam_mkey_<prefix>.<secret>` |
+| `pam_mkey` | Memory MCP (`/v1/mcp/memory`) — desktop/script clients | `Authorization: pam_mkey_<key>` |
 | OAuth Bearer | Memory MCP (`/v1/mcp/memory`) — browser LLM clients | `Authorization: Bearer <opaque_access_token>` |
 | Access JWT | Developer API (`/v1/dev/*`) | `Authorization: Bearer <token>` |
 
@@ -148,7 +148,7 @@ You can hardcode these from the docs instead of reading them from the API.
         "type": "http",
         "url": "https://api.pam.harmix.ai/v1/mcp/memory",
         "headers": {
-          "Authorization": "pam_mkey_<prefix>.<secret>"
+          "Authorization": "pam_mkey_<key>"
         }
       }
     }
@@ -177,7 +177,7 @@ You can hardcode these from the docs instead of reading them from the API.
     "week_reset_at": "2026-06-02T00:00:00+00:00",
     "month_reset_at": "2026-06-01T00:00:00+00:00"
   },
-  "developer_api_notice": "You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key)."
+  "developer_api_notice": "You also have access to developer APIs under /v1/dev (readiness, mcp-config, mcp-requests, mcp-usage-stats, rotate-key, revoke-key, oauth-connections)."
 }
 ```
 
@@ -225,7 +225,7 @@ The full `api_key` is returned **once**. Store it immediately — subsequent `GE
 
 ```json
 {
-  "api_key": "pam_mkey_a3f8c21b.Kx7vP2mNqR8sT4wY9zAbCdEfGh",
+  "api_key": "pam_mkey_Kx7vP2mNqR8sT4wY9zAbCdEfGhIjKlMnOp",
   "key_prefix": "pam_mkey_a3f8c21b",
   "rotated_at": "2026-05-29T14:22:08.451234+00:00"
 }

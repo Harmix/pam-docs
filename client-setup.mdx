@@ -1,74 +1,187 @@
 ---
 title: "Client setup"
-description: "Configure Memory MCP in Cursor, Claude Code, VS Code, Claude web, and ChatGPT."
+description: "Configure Memory MCP in Cursor, Claude Code, VS Code, scripts, ChatGPT, Claude web, and Perplexity."
+keywords: ["cursor", "claude", "chatgpt", "perplexity", "oauth", "mcp", "vscode"]
 ---
 
-Add the Memory MCP server using the endpoint from [Setup and keys](/setup-and-keys).
+<CardGroup cols={2}>
+  <Card title="Desktop agents" icon="laptop" href="#desktop-agents">
+    Cursor, Claude Code, scripts, VS Code — use a `pam_mkey` API key.
+  </Card>
+  <Card title="Browser LLM" icon="globe" href="#browser-llm-connectors">
+    ChatGPT, Claude web, Perplexity — OAuth via MCP URL.
+  </Card>
+</CardGroup>
 
-**Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
+<Note>
+  **Endpoint:** `https://api.pam.harmix.ai/v1/mcp/memory`
 
-## Browser LLM connectors
+  Copy your account MCP URL from [Setup](https://pam.harmix.ai/setup). Generate or rotate a desktop key on [Setup](https://pam.harmix.ai/setup) or [Access](https://pam.harmix.ai/access-management). Auth details: [Setup and keys](/setup-and-keys).
+</Note>
 
-Use OAuth 2.1 + PKCE for Claude web and ChatGPT. **The MCP URL alone is enough** — the browser client discovers OAuth and registers itself via dynamic client registration (DCR) automatically.
+## Browser LLM connectors {#browser-llm-connectors}
+
+Use OAuth 2.1 + PKCE. **The MCP URL alone is enough** for clients that support OAuth discovery — they register via dynamic client registration (DCR) automatically.
 
 <Tabs>
-  <Tab title="ChatGPT (chatgpt.com)">
-    1. Open **Settings** → **Apps**.
-    2. Open **Advanced settings** and turn on **Developer mode** (accept the elevated-risk notice if shown).
-    3. Click **Create app** (from Advanced settings or the Enabled apps section).
-    4. **Name:** anything you like (e.g. PAM Memory).
-    5. Under **Connection**, choose **Server URL** and paste your MCP URL (from [Memory MCP](https://pam.harmix.ai/for-developers) or `GET /v1/dev/mcp-config`). Leave **Authentication** as **OAuth** — no client ID is required.
-    6. Check **I understand and want to continue**, then click **Create**.
-    7. Click **Sign in with** [your app name]. ChatGPT opens PAM in your browser to sign in if needed.
-    8. On the PAM approval screen, click **Allow**. You will be redirected back to ChatGPT.
+  <Tab title="ChatGPT">
+    [Open ChatGPT](https://chatgpt.com) and follow these steps:
+
+    <Steps>
+      <Step title="Open Apps settings">
+        Open **Settings** → **Apps**.
+      </Step>
+      <Step title="Enable Developer mode">
+        Open **Advanced settings** and turn on **Developer mode** (accept the elevated-risk notice if shown).
+      </Step>
+      <Step title="Create app">
+        Click **Create app** (from Advanced settings or the Enabled apps section).
+      </Step>
+      <Step title="Name the app">
+        **Name:** anything you like (e.g. PAM Memory).
+      </Step>
+      <Step title="Paste MCP URL">
+        Under **Connection**, choose **Server URL** and paste your MCP URL from [Setup](https://pam.harmix.ai/setup). Leave **Authentication** as **OAuth** — no client ID is required when discovery is enabled.
+      </Step>
+      <Step title="Create connector">
+        Check **I understand and want to continue**, then click **Create**.
+      </Step>
+      <Step title="Sign in">
+        Click **Sign in with** [your app name]. ChatGPT opens PAM in your browser to sign in if needed.
+      </Step>
+      <Step title="Approve access">
+        On the PAM approval screen, click **Approve** to grant `memory:read` access. You will be redirected back to ChatGPT.
+      </Step>
+    </Steps>
 
     <Tip>
       ChatGPT uses per-connector redirect URLs such as `https://chatgpt.com/connector/oauth/{id}`. PAM accepts trusted `chatgpt.com` callback paths automatically.
     </Tip>
   </Tab>
-  <Tab title="Claude web (claude.ai)">
-    1. In Claude, open **Settings** → **Connectors** → **Add custom connector**.
-    2. **Name:** anything you like (e.g. PAM Memory).
-    3. **Remote MCP server URL:** paste your MCP URL.
-    4. Click **Add** — no OAuth client ID required (DCR registers the client automatically).
-    5. Claude opens PAM to sign in if needed.
-    6. On the PAM approval screen, click **Allow**.
+
+  <Tab title="Claude web">
+    [Open Claude](https://claude.ai) and follow these steps:
+
+    <Steps>
+      <Step title="Add connector">
+        In Claude, open **Settings** → **Connectors** → **Add custom connector**.
+      </Step>
+      <Step title="Name the connector">
+        **Name:** anything you like (e.g. PAM Memory).
+      </Step>
+      <Step title="Paste MCP URL">
+        **Remote MCP server URL:** paste your MCP URL from [Setup](https://pam.harmix.ai/setup).
+      </Step>
+      <Step title="Add">
+        Click **Add**. Claude opens PAM in your browser if you are not signed in yet.
+      </Step>
+      <Step title="Approve access">
+        On the approval screen, click **Approve** to grant `memory:read` access.
+      </Step>
+    </Steps>
 
     <Note>
-      Claude web may show the connector as added before you approve in PAM. Access starts only after you click **Allow** on the PAM consent screen.
+      Claude web may show the connector as added before you approve in PAM. Access starts only after you click **Approve** on the PAM consent screen.
     </Note>
+  </Tab>
+
+  <Tab title="Perplexity">
+    [Open Perplexity](https://www.perplexity.ai) and follow these steps:
+
+    <Steps>
+      <Step title="Open Customize">
+        In Perplexity, open **Customize** in the left sidebar.
+      </Step>
+      <Step title="Open Connectors">
+        Click **Connectors**.
+      </Step>
+      <Step title="Add custom connector">
+        Choose **Custom connector**.
+      </Step>
+      <Step title="Name the connector">
+        Enter a connector name (e.g. PAM Memory).
+      </Step>
+      <Step title="Paste description">
+        Paste the description below into the **Description** field.
+      </Step>
+      <Step title="Paste MCP URL">
+        Paste your MCP server URL from [Setup](https://pam.harmix.ai/setup) into the **MCP URL** field.
+      </Step>
+      <Step title="Save and approve">
+        Save the connector, then sign in to PAM and approve `memory:read` when prompted.
+      </Step>
+    </Steps>
+
+    ```text Connector description (paste into Perplexity)
+    Read-only access to your company's internal context — people, projects, decisions, and processes — when your questions need organizational memory.
+    ```
+  </Tab>
+
+  <Tab title="Other">
+    <Steps>
+      <Step title="Open connector settings">
+        Open your browser LLM connector or MCP settings.
+      </Step>
+      <Step title="Add MCP URL">
+        Add the MCP server URL from [Setup](https://pam.harmix.ai/setup) and choose **OAuth** if available.
+      </Step>
+      <Step title="Approve access">
+        Complete PAM login and approve `memory:read` when prompted.
+      </Step>
+    </Steps>
   </Tab>
 </Tabs>
 
-### OAuth discovery endpoints
+<AccordionGroup>
+  <Accordion title="Advanced OAuth details">
+    Browser clients resolve OAuth from:
 
-Browser clients resolve OAuth from:
+    | Endpoint | Purpose |
+    |----------|---------|
+    | `GET /.well-known/oauth-protected-resource` | Protected resource metadata (RFC 9728) |
+    | `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
+    | `POST /v1/oauth/register` | Dynamic client registration (DCR) |
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /.well-known/oauth-protected-resource` | Protected resource metadata (RFC 9728) |
-| `GET /.well-known/oauth-authorization-server` | Authorization server metadata |
-| `POST /v1/oauth/register` | Dynamic client registration (DCR) |
+    Scope: `memory:read` (read-only company memory retrieval).
 
-Scope: `memory:read` (read-only company memory retrieval).
+    **Token refresh:** After the initial OAuth approval, compliant clients call `POST /v1/oauth/token` with `grant_type=refresh_token` to obtain a new access token without asking you to sign in again. Access tokens last about 1 hour; refresh tokens last about 30 days. PAM rotates the refresh token on every refresh (OAuth 2.1 best practice). If a refresh token is reused, the entire connection family is revoked and you must reconnect.
 
-**Token refresh:** After the initial OAuth approval, ChatGPT and Claude can call `POST /v1/oauth/token` with `grant_type=refresh_token` to obtain a new access token without asking you to sign in again. Access tokens last about 1 hour; refresh tokens last about 30 days. PAM rotates the refresh token on every refresh (OAuth 2.1 best practice). If a refresh token is reused, the entire connection family is revoked and you must reconnect.
+    **Claude web — optional OAuth Client ID:** For ChatGPT and other clients that support OAuth discovery, the MCP URL alone is enough. If Claude asks for credentials under **Advanced settings**, expand **Advanced settings**, paste the **OAuth Client ID** from [Setup](https://pam.harmix.ai/setup) (or `oauth_client_id` from `GET /v1/dev/mcp-config`), and leave **OAuth Client Secret** blank (public client + PKCE).
+  </Accordion>
 
-### Manage browser connections
+  <Accordion title="Manage browser connections">
+    View and revoke browser LLM connections from [Access](https://pam.harmix.ai/access-management), or use the Developer REST API:
 
-View and revoke browser LLM connections from **Memory MCP → Connected apps** in the PAM app, or use the Developer API:
+    | Method | Path | Purpose |
+    |--------|------|---------|
+    | `GET` | `/v1/dev/oauth-connections` | List active, expired, and revoked browser connections |
+    | `POST` | `/v1/dev/oauth-connections/{id}/revoke` | Revoke one connection (entire refresh-token family) |
+  </Accordion>
+</AccordionGroup>
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/v1/dev/oauth-connections` | List active, expired, and revoked browser connections |
-| `POST` | `/v1/dev/oauth-connections/{id}/revoke` | Revoke one connection (entire refresh-token family) |
+## Desktop agents {#desktop-agents}
 
-## Desktop agents
+Desktop and script clients use a static `pam_mkey` in the `Authorization` header. See [Setup and keys](/setup-and-keys) for key format and rotation.
 
 <Tabs>
   <Tab title="Cursor">
-    1. Open **Cursor Settings** → **MCP** (or run `Ctrl+Shift+P` → **Open MCP settings**)
-    2. Add to your `mcp.json`:
+    <Steps>
+      <Step title="Open MCP settings">
+        Open Cursor and go to **Settings** → **MCP** (or run `Ctrl+Shift+P` → **Open MCP settings**).
+      </Step>
+      <Step title="Add server">
+        Click **Add new global MCP server** (or project MCP server).
+      </Step>
+      <Step title="Configure auth">
+        Paste the MCP server URL and `Authorization: pam_mkey_<key>` header. Generate a key on [Setup](https://pam.harmix.ai/setup) if you do not have one yet.
+      </Step>
+      <Step title="Paste config (optional)">
+        If your client asks for a full config block, paste the JSON below.
+      </Step>
+      <Step title="Test">
+        Run the [hello world prompt](#test-your-connection) from Cursor to verify `retrieve_memory` works.
+      </Step>
+    </Steps>
 
     ```json
     {
@@ -76,24 +189,31 @@ View and revoke browser LLM connections from **Memory MCP → Connected apps** i
         "pam_memory": {
           "url": "https://api.pam.harmix.ai/v1/mcp/memory",
           "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
+            "Authorization": "pam_mkey_<key>"
           }
         }
       }
     }
     ```
-
-    3. Reload Cursor and confirm `pam_memory` shows as connected
   </Tab>
+
   <Tab title="Claude Code">
-    Add the server with the Claude Code CLI:
+    <Steps>
+      <Step title="Open MCP config">
+        Open your Claude Code MCP config file (typically `~/.claude/claude_desktop_config.json` or project MCP settings).
+      </Step>
+      <Step title="Paste config">
+        Paste the config JSON below under `mcpServers.pam_memory`, or use the CLI command.
+      </Step>
+      <Step title="Test">
+        Run the [hello world prompt](#test-your-connection) to verify `retrieve_memory` works.
+      </Step>
+    </Steps>
 
     ```bash
     claude mcp add --transport http pam_memory https://api.pam.harmix.ai/v1/mcp/memory \
-      --header "Authorization: pam_mkey_<prefix>.<secret>"
+      --header "Authorization: pam_mkey_<key>"
     ```
-
-    Or paste the JSON config into your Claude Code MCP settings:
 
     ```json
     {
@@ -102,13 +222,46 @@ View and revoke browser LLM connections from **Memory MCP → Connected apps** i
           "type": "http",
           "url": "https://api.pam.harmix.ai/v1/mcp/memory",
           "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
+            "Authorization": "pam_mkey_<key>"
           }
         }
       }
     }
     ```
   </Tab>
+
+  <Tab title="Script / terminal">
+    <Steps>
+      <Step title="Generate a key">
+        Generate a static API key on [Setup](https://pam.harmix.ai/setup) or [Access](https://pam.harmix.ai/access-management) if you do not have one yet.
+      </Step>
+      <Step title="Set Authorization header">
+        Send requests to the MCP URL with `Authorization: pam_mkey_<key>` (no `Bearer` prefix).
+      </Step>
+      <Step title="Call retrieve_memory">
+        Use JSON-RPC `tools/call` with `retrieve_memory` and your prompt.
+      </Step>
+    </Steps>
+
+    <Expandable title="Example tools/call payload">
+      Minimal JSON-RPC example for server-side agents and scripts:
+
+      ```json
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+          "name": "retrieve_memory",
+          "arguments": {
+            "prompt": "What do we know about our current project priorities, and who is responsible for follow-up on each?"
+          }
+        }
+      }
+      ```
+    </Expandable>
+  </Tab>
+
   <Tab title="VS Code">
     Create or update `.vscode/mcp.json` in your workspace:
 
@@ -119,7 +272,7 @@ View and revoke browser LLM connections from **Memory MCP → Connected apps** i
           "type": "http",
           "url": "https://api.pam.harmix.ai/v1/mcp/memory",
           "headers": {
-            "Authorization": "pam_mkey_<prefix>.<secret>"
+            "Authorization": "pam_mkey_<key>"
           }
         }
       }
@@ -127,6 +280,18 @@ View and revoke browser LLM connections from **Memory MCP → Connected apps** i
     ```
   </Tab>
 </Tabs>
+
+## Test your connection {#test-your-connection}
+
+Run this hello world prompt in your agent:
+
+```text
+What do we know about our current project priorities, and who is responsible for follow-up on each?
+```
+
+<Check>
+  Confirm the call in [Request Log](https://pam.harmix.ai/request-log). A successful `retrieve_memory` marks your setup as **MCP verified** on [Setup](https://pam.harmix.ai/setup).
+</Check>
 
 ## Server metadata
 
@@ -143,16 +308,6 @@ The response may include an `Mcp-Session-Id` header for session continuity.
 
 The `retrieve_memory` tool includes MCP annotations for connector directories: `readOnlyHint: true`, `destructiveHint: false`.
 
-## Test your connection
-
-Run this hello world prompt in your agent:
-
-```text
-What do we know about our current project priorities, and who is responsible for follow-up on each?
-```
-
-Check **Memory MCP → Request history** in the PAM app to confirm the call was recorded.
-
 <Tip>
-  Live config with your account-specific URL, OAuth URLs, and key prefix is available at `GET /v1/dev/mcp-config` — see [Developer API overview](/developer-api-overview).
+  Prefer live values from [Setup](https://pam.harmix.ai/setup) for your MCP URL and config snippets. For automation, `GET /v1/dev/mcp-config` returns account-specific connection details (requires a PAM access JWT).
 </Tip>

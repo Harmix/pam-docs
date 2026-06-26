@@ -3,7 +3,7 @@ title: "Introduction"
 description: "Connect external agents to PAM Memory with a read-only MCP server and retrieve company context on demand."
 ---
 
-Memory MCP lets Claude Code, Cursor, or your own agent retrieve company-specific context from PAM — people, projects, decisions, processes, priorities, history, customers, and internal terminology — without writing to chat history or consuming chat credits per call.
+Memory MCP lets Claude Code, Cursor, or your own agent retrieve company-specific context from PAM — people, projects, decisions, processes, priorities, history, customers, and internal terminology — without writing to PAM Chat history.
 
 <Tip>
   New to Memory MCP? Start with the [Quickstart](/quickstart) to generate a key, connect your client, and run your first `retrieve_memory` call.
@@ -20,7 +20,6 @@ Memory MCP lets Claude Code, Cursor, or your own agent retrieve company-specific
 ## What it does not do
 
 - Write to PAM Chat threads or modify your workspace
-- Burn chat credits on each MCP call (subscription gate only)
 - Expose write access to your memory or integrations
 
 <CardGroup cols={2}>
@@ -30,11 +29,11 @@ Memory MCP lets Claude Code, Cursor, or your own agent retrieve company-specific
   <Card title="retrieve_memory" icon="brain" href="/retrieve-memory">
     Tool reference: parameters, responses, and examples.
   </Card>
+  <Card title="Client setup" icon="plug" href="/client-setup">
+    Step-by-step guides for ChatGPT, Claude, Cursor, Perplexity, and more.
+  </Card>
   <Card title="MCP reference" icon="code" href="/mcp-reference">
     Endpoint, JSON-RPC methods, and protocol details.
-  </Card>
-  <Card title="Developer API" icon="server" href="/developer-api-overview">
-    REST endpoints for keys, readiness, usage, and request history.
   </Card>
 </CardGroup>
 
@@ -44,8 +43,8 @@ Before you connect an MCP client:
 
 1. Connect at least one memory source in PAM (Gmail, Drive, Notion, Slack, or another supported integration)
 2. Wait for memory readiness to complete initial sync and processing
-3. Choose your client type on **Memory MCP** — generate a `pam_mkey` for desktop agents, or copy the MCP URL for browser LLM connectors
+3. Choose your client type on **[Setup](https://pam.harmix.ai/setup)** — generate a `pam_mkey` for desktop agents, or copy the MCP URL for browser LLM connectors
 
 <Note>
-  Client setup, key rotation, and live config examples are available on the [Memory MCP page](https://pam.harmix.ai/for-developers) in the PAM app.
+  Generate keys and copy your MCP URL on [Setup](https://pam.harmix.ai/setup). Rotate keys or manage browser connections on [Access](https://pam.harmix.ai/access-management). See [Setup and keys](/setup-and-keys) and [Client setup](/client-setup) for details.
 </Note>

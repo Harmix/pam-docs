@@ -27,7 +27,7 @@ Pass a prompt when the task may depend on company-specific context. Prefer retri
 </ParamField>
 
 <ParamField path="session_id" type="string">
-  Optional stable conversation ID for request history grouping. When provided, the server stores your last few prompts in Redis (30-day TTL) and may include the last 3 prior prompts in the **triage** step only — to help decide whether retrieval is needed. It does **not** carry prior retrieval results or maintain agent-side conversation memory.
+  Optional stable conversation ID. **You can omit it** — the server falls back to the MCP handshake `Mcp-Session-Id` (one per user account, 30-day TTL). When a session ID is resolved (explicit or fallback), the server stores your last **5 prompts** in Redis (30-day TTL) and may include the last **3** prior prompts in the **triage** step only when triage is enabled on the server. It does **not** carry prior retrieval results or maintain agent-side conversation memory.
 </ParamField>
 
 Only `prompt` and `session_id` are accepted. Any other argument returns `invalid_arguments`.
@@ -179,22 +179,27 @@ The `content[].text` field is a markdown report your agent can read directly. Do
 
 ## Session ID behavior
 
-If you omit `session_id`, the server falls back to the MCP handshake `Mcp-Session-Id` header (one per user account, 30-day TTL).
+`session_id` is **optional**. Most clients only need to pass `prompt`.
 
-If you pass `session_id`:
+| Scenario | Behavior |
+|----------|----------|
+| Omit `session_id` | Server uses the handshake `Mcp-Session-Id` for this call |
+| Pass explicit `session_id` | Overrides the handshake ID for that call (useful for per-thread IDs in multi-tab agents) |
+
+For whichever session ID applies:
 
 | What it does | What it does not do |
 |--------------|---------------------|
-| Groups calls in **Request history** | Return prior turns to your agent |
-| Stores last **5 prompts** in Redis | Inject prior retrieval results into new calls |
-| Feeds last **3 prompts** into **triage only** | Change the retrieval query directly (except via triage rewrite) |
+| Stores last **5 prompts** in Redis (30-day TTL) | Return prior turns to your agent |
+| May feed last **3 prompts** into **triage only** (when triage is enabled) | Inject prior retrieval results into new calls |
+| Persists on the server-side request record | Replace your agent's conversation memory |
 
 <Tip>
-  Your MCP client or agent is still responsible for conversation memory. Pass a stable `session_id` per thread if you want related `retrieve_memory` calls grouped and lightly connected at triage time.
+  Your MCP client or agent is still responsible for conversation memory. Pass a stable `session_id` per thread only if you want separate Redis prompt history from the default MCP session — for example, multiple concurrent chats under one account.
 </Tip>
 
 Retrieval must complete within **120 seconds**. Exceeding the limit returns `retrieval_timeout`.
 
 ## Request history
 
-Every counted call stores the full prompt and response for your review on **Memory MCP → Request history** in the PAM app, or via `GET /v1/dev/mcp-requests`.
+Every counted call stores the full prompt and response for your review on **[Request Log](https://pam.harmix.ai/request-log)** in the PAM app, or via `GET /v1/dev/mcp-requests`.
